@@ -48,9 +48,13 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
     <select id="cem" class="grow" aria-label="בית עלמין"></select>
     <button id="newCem" title="בית עלמין חדש" aria-label="בית עלמין חדש">＋</button>
     <span id="demo" class="demo" hidden>מצב ניסיון</span>
-    <button id="bPh" hidden title="תמונות לאישור">תמונות</button>
-    <button id="addEd" hidden title="מינוי עורך נוסף">＋ עורך</button>
     <button id="logout" hidden>יציאה</button>
+  </div>
+  <div class="bar" style="flex-wrap:wrap">
+    <button id="bPh" hidden title="תמונות לאישור">תמונות</button>
+    <button id="bRep" hidden title="דיווחים מהציבור">דיווחים</button>
+    <button id="bCt" hidden title="אנשי קשר">אנשי קשר</button>
+    <button id="addEd" hidden title="מינוי עורך נוסף">＋ עורך</button>
   </div>
   <div class="bar">
     <span class="tag">גוש</span>
@@ -111,6 +115,20 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
 <div class="dlg" id="dPh"><div class="box" style="max-width:480px;max-height:85vh;overflow:auto">
   <h3>תמונות לאישור</h3><div id="phList" style="display:flex;flex-direction:column;gap:12px"></div>
   <button id="phClose" style="width:100%;margin-top:10px">סגירה</button>
+</div></div>
+
+<div class="dlg" id="dRep"><div class="box" style="max-width:480px;max-height:85vh;overflow:auto">
+  <h3>דיווחים מהציבור</h3><div id="repList" style="display:flex;flex-direction:column;gap:10px"></div>
+  <button id="repClose" style="width:100%;margin-top:10px">סגירה</button>
+</div></div>
+
+<div class="dlg" id="dCt"><div class="box" style="max-width:480px;max-height:85vh;overflow:auto">
+  <h3>אנשי קשר – <span id="ctCem"></span></h3>
+  <div id="ctList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+  <select id="ctCat" style="width:100%;font-size:16px;padding:9px;margin-bottom:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
+    <option value="office">בית העלמין</option><option value="council">מועצה ושירותי דת</option><option value="maker">מכיני ומתקני מצבות</option><option value="other">נוסף</option></select>
+  <input id="ctName" placeholder="שם"><input id="ctRole" placeholder="תפקיד (לא חובה)"><input id="ctPhone" placeholder="טלפון" dir="ltr"><input id="ctNotes" placeholder="הערה (לא חובה)">
+  <div class="row"><button class="pri" id="ctAdd">הוספה</button><button id="ctClose">סגירה</button></div>
 </div></div>
 
 <div class="dlg" id="dAsk"><div class="box">
@@ -358,7 +376,7 @@ async function login(){
 async function afterLogin(){
   const {data}=await sb.from('editors').select('*').eq('user_id',user.id).maybeSingle();
   if(!data){$('dLogin').classList.add('show');$('lMsg').textContent='המשתמש לא מורשה לעריכה (חסר בטבלת editors).';return}
-  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); await loadCems();
+  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; repCount(); await loadCems();
 }
 async function addEditor(){
   const name=$('eName').value.trim(), email=$('eEmail').value.trim().toLowerCase(), pass=$('ePass').value;
@@ -402,7 +420,35 @@ $('phList').onclick=async e=>{const b=e.target.closest('button[data-a]');if(!b)r
   if(b.dataset.a==='rejected')await sb.storage.from('grave-photos').remove([it.dataset.path]);
   it.remove(); phCount(); if(!$('phList').children.length)$('phList').textContent='אין תמונות שממתינות לאישור.'};
 function alertMsg(el,t){el.insertAdjacentHTML('beforeend',`<div style="color:var(--bad)">${t}</div>`)}
-$('bPh').onclick=phOpen; $('phClose').onclick=()=>$('dPh').classList.remove('show');
+$('bPh').onclick=phOpen;
+// דיווחים
+const KIND={error:'פרט שגוי',damage:'מצבה פגועה',other:'אחר'};
+async function repCount(){const {count}=await sb.from('reports').select('id',{count:'exact',head:true}).eq('status','new');$('bRep').textContent=count?`דיווחים (${count})`:'דיווחים'}
+async function repOpen(){$('dRep').classList.add('show');$('repList').textContent='טוען…';
+  const {data,error}=await sb.from('reports').select('id,kind,message,contact,created_at,deceased(first_name,last_name,plot,row_no,grave_no)').eq('status','new').order('created_at').limit(50);
+  if(error){$('repList').textContent='לא ניתן לטעון (האם הורץ contacts_reports.sql?)';return}
+  if(!data.length){$('repList').textContent='אין דיווחים פתוחים.';return}
+  const e=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  $('repList').innerHTML=data.map(r=>{const d=r.deceased;return `<div data-id="${r.id}" style="border:1px solid var(--line);border-radius:10px;padding:8px">
+    <b>${KIND[r.kind]||r.kind}</b> · ${new Date(r.created_at).toLocaleDateString('he-IL')}${d?`<div>${e(d.first_name)} ${e(d.last_name)} · חלקה ${e(d.plot)} שורה ${e(d.row_no)} קבר ${e(d.grave_no)}</div>`:''}
+    <div style="margin:4px 0">${e(r.message)}</div>${r.contact?`<div dir="ltr" style="text-align:right">${e(r.contact)}</div>`:''}<button class="ok" style="margin-top:6px">טופל</button></div>`}).join('')}
+$('repList').onclick=async ev=>{const b=ev.target.closest('button');if(!b)return;const it=b.closest('[data-id]');b.disabled=true;
+  const {error}=await sb.from('reports').update({status:'done'}).eq('id',+it.dataset.id);if(error){b.disabled=false;return}
+  it.remove();repCount();if(!$('repList').children.length)$('repList').textContent='אין דיווחים פתוחים.'};
+$('bRep').onclick=repOpen; $('repClose').onclick=()=>$('dRep').classList.remove('show');
+// אנשי קשר
+const CAT={office:'בית העלמין',council:'מועצה ושירותי דת',maker:'מכיני מצבות',other:'נוסף'};
+async function ctLoad(){const cid=$('cem').value;$('ctCem').textContent=cems.find(c=>c.id===cid)?.name||'';
+  const {data,error}=await sb.from('cemetery_contacts').select('*').eq('cemetery_id',cid).order('category').order('sort').order('name');
+  if(error){$('ctList').textContent='לא ניתן לטעון (האם הורץ contacts_reports.sql?)';return}
+  $('ctList').innerHTML=data.length?data.map(c=>`<div data-id="${c.id}" style="display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px 8px">
+    <span><b>${c.name}</b> · ${CAT[c.category]||''}${c.role?' · '+c.role:''}<br><span dir="ltr">${c.phone||''}</span></span><button class="bad" style="flex:0 0 auto;min-width:0;padding:6px 10px">מחיקה</button></div>`).join(''):'עוד אין אנשי קשר.'}
+$('ctList').onclick=async ev=>{const b=ev.target.closest('button');if(!b)return;if(!await ask('למחוק את איש הקשר?',''))return;
+  await sb.from('cemetery_contacts').delete().eq('id',+b.closest('[data-id]').dataset.id);ctLoad()};
+$('ctAdd').onclick=async()=>{const name=$('ctName').value.trim();if(!name)return;
+  const {error}=await sb.from('cemetery_contacts').insert({cemetery_id:$('cem').value,category:$('ctCat').value,name,role:$('ctRole').value.trim()||null,phone:$('ctPhone').value.trim()||null,notes:$('ctNotes').value.trim()||null});
+  if(error){$('ctList').insertAdjacentHTML('afterbegin',`<div style="color:var(--bad)">ההוספה נכשלה</div>`);return} for(const i of ['ctName','ctRole','ctPhone','ctNotes'])$(i).value=''; ctLoad()};
+$('bCt').onclick=()=>{$('dCt').classList.add('show');ctLoad()}; $('ctClose').onclick=()=>$('dCt').classList.remove('show'); $('phClose').onclick=()=>$('dPh').classList.remove('show');
 $('addEd').onclick=()=>{$('eMsg').textContent='';$('dEd').classList.add('show')};
 $('eCancel').onclick=()=>$('dEd').classList.remove('show'); $('eGo').onclick=addEditor;
 document.addEventListener('visibilitychange',async()=>{if(walking&&document.visibilityState==='visible'){try{wake=await navigator.wakeLock?.request('screen')}catch{}}});

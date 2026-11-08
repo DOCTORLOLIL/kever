@@ -24,6 +24,7 @@ h1,h2{font-family:"Frank Ruhl Libre",Heebo,serif;font-weight:700;margin:0}
 .btn{border:0;border-radius:12px;padding:12px 16px;background:var(--acc);color:#fff;font-weight:500;cursor:pointer}
 .btn.sec{background:var(--acc2);color:var(--acc)}
 .btn:disabled{opacity:.5}
+a.btn{text-decoration:none;display:inline-block;text-align:center}
 /* כניסה */
 #welcome{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px 16px}
 #welcome .box{max-width:520px;text-align:center}
@@ -74,6 +75,16 @@ footer a{color:var(--mute)}
 .ask .acts .btn{padding:9px 12px}
 .offl{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-top:10px;font-size:14px}
 .offl .btn{padding:7px 12px;font-size:14px}
+.ct{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ct small{display:block;color:var(--mute);font-size:13px}
+.ct .acts{margin:0;flex:0 0 auto}.ct .btn{min-width:0;padding:8px 12px;font-size:14px}
+h3.grp{font-size:15px;color:var(--mute);margin:18px 2px 8px}
+.linkbtn{background:none;border:0;color:var(--mute);text-decoration:underline;font-size:14px;cursor:pointer;padding:8px 0;margin-top:4px}
+.dlg{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;z-index:2500;padding:16px}
+.dlg.show{display:flex}
+.dlg .box{background:var(--card);border-radius:16px;padding:16px;width:100%;max-width:420px}
+.dlg select,.dlg textarea,.dlg input{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px;margin:6px 0}
+.dlg textarea{min-height:90px;resize:vertical}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:3000;font-size:14px}
 </style>
 </head>
@@ -108,7 +119,7 @@ footer a{color:var(--mute)}
     <div class="offl"><span id="offTxt">שמרו את בית העלמין בטלפון כדי שיעבוד גם בלי קליטה.</span><button class="btn sec" id="offBtn">שמירה</button></div>
     <div id="hint" class="hint">כתבו שם משפחה, שם פרטי או שניהם. אפשר להוסיף שם אב או אם, או שנת פטירה.</div>
     <div id="res" class="res"></div>
-    <footer><a href="#" id="showPrayer">ברכת הרואה קברים</a> · <a href="marker/">כניסת עורכים</a></footer>
+    <footer><a href="#" id="showContacts">אנשי קשר ומכיני מצבות</a> · <a href="#" id="showPrayer">ברכת הרואה קברים</a> · <a href="marker/">כניסת עורכים</a></footer>
   </div>
 </section>
 
@@ -137,8 +148,24 @@ footer a{color:var(--mute)}
     </div>
     <button class="attach" id="bPhoto"><span style="font-size:22px">📷</span><span><b>צרף תמונה</b><small>צרף תמונת הקבר להנצחה</small></span></button>
     <input type="file" id="photoIn" accept="image/*" hidden>
+    <button class="linkbtn" id="bReport">דיווח על טעות או נזק</button>
   </div>
 </section>
+
+<!-- אנשי קשר -->
+<section id="contacts" class="hide">
+  <header class="top"><div class="brand"><h1>אנשי קשר</h1><button class="btn sec" id="ctBack">חזרה</button></div></header>
+  <div class="wrap"><div id="ctList"></div></div>
+</section>
+
+<!-- דיווח -->
+<div class="dlg" id="dRep"><div class="box">
+  <h2 style="font-size:20px">דיווח על טעות או נזק</h2>
+  <select id="rKind"><option value="error">פרט שגוי (שם, תאריך, מיקום)</option><option value="damage">מצבה פגועה או מוזנחת</option><option value="other">אחר</option></select>
+  <textarea id="rMsg" maxlength="1000" placeholder="מה כדאי שנדע?"></textarea>
+  <input id="rContact" maxlength="100" placeholder="טלפון או מייל לחזרה (לא חובה)" dir="ltr">
+  <div class="acts"><button class="btn" id="rSend">שליחה</button><button class="btn sec" id="rCancel">ביטול</button></div>
+</div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -151,7 +178,7 @@ const $=id=>document.getElementById(id);
 const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2500)}
-function show(id){for(const s of ['welcome','home','detail'])$(s).classList.toggle('hide',s!==id)}
+function show(id){for(const s of ['welcome','home','detail','contacts'])$(s).classList.toggle('hide',s!==id)}
 
 let cems=[], cem=null, plots=[], cur=null;
 
@@ -393,6 +420,29 @@ $('bCal').onclick=()=>{
   const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Grave Marker//HE','CALSCALE:GREGORIAN',...ev,'END:VCALENDAR'].join('\r\n');
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'})); a.download=`יום-השנה-${name}.ics`; a.click();
   toast('נפתח קובץ יומן ל-5 השנים הבאות');
+};
+
+// ---------- אנשי קשר ----------
+const CT_GROUPS=[['office','בית העלמין'],['council','מועצה ושירותי דת'],['maker','מכיני ומתקני מצבות'],['other','נוסף']];
+function waLink(ph){const d=(ph||'').replace(/\D/g,'');if(/^05\d{8}$/.test(d))return 'https://wa.me/972'+d.slice(1);if(/^9725\d{8}$/.test(d))return 'https://wa.me/'+d;return null}
+$('showContacts').onclick=async e=>{e.preventDefault();show('contacts');$('ctList').innerHTML='<div class="hint">טוען…</div>';
+  const {data,error}=await sb.from('cemetery_contacts').select('*').eq('cemetery_id',cem.id).order('sort').order('name');
+  if(error||!data?.length){$('ctList').innerHTML='<div class="hint">עוד לא נוספו אנשי קשר לבית העלמין הזה.</div>';return}
+  $('ctList').innerHTML=CT_GROUPS.map(([k,t])=>{const g=data.filter(c=>(c.category||'other')===k);if(!g.length)return'';
+    return `<h3 class="grp">${t}</h3><div class="res">`+g.map(c=>{const wa=waLink(c.phone);return `<div class="ct"><div><b>${esc(c.name)}</b>${c.role?`<small>${esc(c.role)}</small>`:''}${c.notes?`<small>${esc(c.notes)}</small>`:''}</div>
+      <div class="acts">${c.phone?`<a class="btn" href="tel:${esc(c.phone.replace(/[^\d+]/g,''))}">חיוג</a>`:''}${wa?`<a class="btn sec" href="${wa}" target="_blank">וואטסאפ</a>`:''}</div></div>`}).join('')+'</div>'}).join('');
+};
+$('ctBack').onclick=()=>show('home');
+
+// ---------- דיווח ----------
+$('bReport').onclick=()=>{$('rMsg').value='';$('dRep').classList.add('show')};
+$('rCancel').onclick=()=>$('dRep').classList.remove('show');
+$('rSend').onclick=async()=>{const msg=$('rMsg').value.trim();if(msg.length<3){toast('כתבו כמה מילים על מה שמצאתם');return}
+  $('rSend').disabled=true;
+  const {error}=await sb.from('reports').insert({cemetery_id:cem.id,deceased_id:cur?.id||null,kind:$('rKind').value,message:msg,contact:$('rContact').value.trim()||null});
+  $('rSend').disabled=false;
+  if(error){toast('השליחה לא הצליחה. נסו שוב בעוד רגע.');return}
+  $('dRep').classList.remove('show');toast('תודה! הדיווח הגיע לצוות');
 };
 
 // ---------- פעולות ----------
