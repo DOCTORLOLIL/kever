@@ -116,7 +116,7 @@ h3.grp{font-size:15px;color:var(--mute);margin:18px 2px 8px}
     </form>
   </header>
   <div class="wrap">
-    <div class="offl"><span id="offTxt">שמרו את בית העלמין בטלפון כדי שיעבוד גם בלי קליטה.</span><button class="btn sec" id="offBtn">שמירה</button></div>
+    <div class="offl"><span id="offTxt">שמרו את בית העלמין בטלפון כדי שיעבוד גם בלי קליטה (קל יותר מסרטון קצר בוואטסאפ).</span><button class="btn sec" id="offBtn">שמירה</button></div>
     <div id="hint" class="hint">כתבו שם משפחה, שם פרטי או שניהם. אפשר להוסיף שם אב או אם, או שנת פטירה.</div>
     <div id="res" class="res"></div>
     <footer><a href="#" id="showContacts">אנשי קשר ומכיני מצבות</a> · <a href="#" id="showPrayer">ברכת הרואה קברים</a> · <a href="marker/">כניסת עורכים</a></footer>
@@ -483,7 +483,7 @@ function localSearch(all,words){
 function tileXY(lat,lng,z){const n=2**z,x=Math.floor((lng+180)/360*n),r=lat*Math.PI/180,y=Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n);return [x,y]}
 async function offStatus(){
   const t=store.get('off:'+cem?.id,0);
-  $('offTxt').textContent=t?`${cem.town} שמור בטלפון (${dmy(new Date(t))}). עובד גם בלי קליטה.`:'שמרו את בית העלמין בטלפון כדי שיעבוד גם בלי קליטה.';
+  $('offTxt').textContent=t?`${cem.town} שמור בטלפון (${dmy(new Date(t))}). עובד גם בלי קליטה.`:'שמרו את בית העלמין בטלפון כדי שיעבוד גם בלי קליטה (קל יותר מסרטון קצר בוואטסאפ).';
   $('offBtn').textContent=t?'עדכון':'שמירה';
 }
 $('offBtn').onclick=async()=>{
