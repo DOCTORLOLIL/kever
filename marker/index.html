@@ -115,7 +115,7 @@ const store = {get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{
 let cems=[], plots=[], pts=[], walking=false, tapping=false, watchId=null, lastFix=null, wake=null, user=null;
 
 // ---------- מפה ----------
-const map = L.map('map',{zoomControl:false}).setView([31.3036,34.6066],17);
+const map = L.map('map',{zoomControl:false}).setView([31.3152,34.6103],18);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:21,maxNativeZoom:19,attribution:'Esri'}).addTo(map);
 L.control.zoom({position:'topleft'}).addTo(map);
 const plotLayer = L.layerGroup().addTo(map);
@@ -205,7 +205,7 @@ map.on('click',e=>{if(tapping)addPoint([e.latlng.lat,e.latlng.lng])});
 
 // ---------- נתונים ----------
 async function loadCems(){
-  if(DEMO){cems=store.get('demo:cems',[{id:'ofakim',name:'בית העלמין אופקים',town:'אופקים',center_lat:31.3036,center_lng:34.6066}])}
+  if(DEMO){cems=store.get('demo:cems',[{id:'ofakim',name:'בית העלמין אופקים',town:'אופקים',center_lat:31.3152,center_lng:34.6103}])}
   else{const {data,error}=await sb.from('cemeteries').select('*').order('name');if(error){msg('שגיאה בטעינה: '+error.message,'bad');return}cems=data}
   $('cem').innerHTML=cems.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
   const last=store.get('lastCem'); if(cems.some(c=>c.id===last))$('cem').value=last;
@@ -220,7 +220,7 @@ async function loadPlots(){
 }
 async function onCemChange(){
   store.set('lastCem',$('cem').value); const c=cems.find(x=>x.id===$('cem').value);
-  if(c&&c.center_lat&&!lastFix)map.setView([c.center_lat,c.center_lng],17);
+  if(c&&c.center_lat&&!lastFix)map.setView([c.center_lat,c.center_lng],18);
   await loadPlots(); onPlotChange();
 }
 async function save(){
