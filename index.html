@@ -299,7 +299,7 @@ async function loadEstimate(r){
   const E=maxE-(Math.min(row,nRows)-0.5)/nRows*(maxE-minE), N=maxN-(Math.min(gr,nG)-0.5)/nG*(maxN-minN);
   const x=E*e[0]+N*n[0], y=E*e[1]+N*n[1];
   estPt=[o.lat+y/ky,o.lng+x/kx];
-  estMk=L.circleMarker(estPt,{radius:8,color:'#e0a83a',weight:3,fill:false,dashArray:'3 3'}).addTo(map).bindTooltip('מיקום משוער של הקבר');
+  estMk=L.layerGroup([L.circleMarker(estPt,{radius:9,color:'#fff',weight:6,fill:false,dashArray:'4 4'}),L.circleMarker(estPt,{radius:9,color:'#dc1e1e',weight:3,fill:false,dashArray:'4 4'}).bindTooltip('מיקום משוער של הקבר')]).addTo(map);
 }
 
 // ---------- מיקום מדויק של הקבר ----------
@@ -307,7 +307,7 @@ async function loadGrave(id){
   gravePt=null; if(graveMk){graveMk.remove();graveMk=null}
   const {data}=await sb.from('grave_locations').select('lat,lng,accuracy').eq('deceased_id',id);
   if(data&&data.length){let w=0,la=0,lo=0;for(const r of data){const k=1/Math.max(r.accuracy||10,2)**2;w+=k;la+=r.lat*k;lo+=r.lng*k}
-    gravePt=[la/w,lo/w]; graveMk=L.circleMarker(gravePt,{radius:7,color:'#fff',weight:2,fillColor:'#e0a83a',fillOpacity:1}).addTo(map).bindTooltip('הקבר');
+    gravePt=[la/w,lo/w]; graveMk=L.circleMarker(gravePt,{radius:8,color:'#fff',weight:3,fillColor:'#dc1e1e',fillOpacity:1}).addTo(map).bindTooltip('הקבר');
     if(estMk){estMk.remove();estMk=null} map.setView(gravePt,19)}
 }
 function maybeAskLoc(){const k='asked:'+cur.id; if(store.get(k,false))return; $('askLoc').classList.remove('hide')}
