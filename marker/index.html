@@ -153,15 +153,16 @@ const Ov=L.Layer.extend({
 let ov=null, ovCorners=null, ovOn=store.get('ovOn',true), ovOpacity=store.get('ovOp',0.85), aligning=false, hMove=null, hRot=null;
 const ovCtl=L.control({position:'topright'});
 ovCtl.onAdd=()=>{const d=L.DomUtil.create('div','ovbox');L.DomEvent.disableClickPropagation(d);L.DomEvent.disableScrollPropagation(d);
-  d.innerHTML=`<button id="ovTog">תצלום רחפן</button><input id="ovOp" type="range" min="0" max="1" step="0.05" aria-label="שקיפות">
+  d.innerHTML=`<button id="ovShow" title="הצג הגדרות תצלום">🛰 תצלום</button><div id="ovBody" style="display:flex;flex-direction:column;gap:5px">
+  <button id="ovHide" title="הסתר את הגדרות התצלום">✕ הסתר</button><button id="ovTog">תצלום רחפן</button><input id="ovOp" type="range" min="0" max="1" step="0.05" aria-label="שקיפות">
   <button id="ovAlign">יישור תמונה</button><div id="ovAl" style="display:none;flex-direction:column;gap:5px">
   <div style="font-size:12px;max-width:130px">גרור את הנקודה הכחולה להזזה ואת האדומה לסיבוב וגודל. התאם למפה שמתחת.</div>
-  <button id="ovR90">↻ 90°</button><button class="ok" id="ovSave">שמור יישור</button><button id="ovCancel">בטל</button></div>`;return d};
+  <button id="ovR90">↻ 90°</button><button class="ok" id="ovSave">שמור יישור</button><button id="ovCancel">בטל</button></div></div>`;return d};
 function ovSetup(c){
   if(ov){map.removeLayer(ov);ov=null}
   const def=OV_DEFAULT[c?.id]; const url=c?.overlay_url||def?.url;
   ovCorners=store.get('ovC2:'+c?.id,null)||c?.overlay_corners||def?.corners;
-  $('ovTog').parentElement.style.display=url&&ovCorners?'':'none';
+  $('ovTog').closest('.ovbox').style.display=url&&ovCorners?'':'none';
   if(!url||!ovCorners)return;
   ov=new Ov(url,ovCorners); if(ovOn)ov.addTo(map);
   $('ovTog').classList.toggle('on',ovOn); $('ovOp').value=ovOpacity;
@@ -193,7 +194,9 @@ async function ovSaveAlign(){
     if(error){msg('היישור נשמר בטלפון בלבד ('+error.message+').','warn');ovAlignMode(false);return}}
   msg('יישור התמונה נשמר ✓','ok'); ovAlignMode(false);
 }
+function ovPanel(open){$('ovBody').style.display=open?'flex':'none';$('ovShow').style.display=open?'none':'';store.set('ovPanel',open);if(!open&&aligning){const c=cems.find(x=>x.id===$('cem').value);ovAlignMode(false);ovSetup(c)}}
 function ovWire(){
+  $('ovHide').onclick=()=>ovPanel(false); $('ovShow').onclick=()=>ovPanel(true); ovPanel(store.get('ovPanel',true));
   $('ovTog').onclick=()=>{ovOn=!ovOn;store.set('ovOn',ovOn);$('ovTog').classList.toggle('on',ovOn);if(!ov)return;ovOn?ov.addTo(map):map.removeLayer(ov);if(!ovOn&&aligning)ovAlignMode(false)};
   $('ovOp').oninput=e=>{ovOpacity=+e.target.value;store.set('ovOp',ovOpacity);ov?.setOpacity(ovOpacity)};
   $('ovAlign').onclick=()=>ovAlignMode(true);
