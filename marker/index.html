@@ -48,6 +48,7 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
     <select id="cem" class="grow" aria-label="בית עלמין"></select>
     <button id="newCem" title="בית עלמין חדש" aria-label="בית עלמין חדש">＋</button>
     <span id="demo" class="demo" hidden>מצב ניסיון</span>
+    <button id="bPh" hidden title="תמונות לאישור">תמונות</button>
     <button id="addEd" hidden title="מינוי עורך נוסף">＋ עורך</button>
     <button id="logout" hidden>יציאה</button>
   </div>
@@ -105,6 +106,11 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
   <input id="ePass" type="text" placeholder="סיסמה (לפחות 8 תווים)" dir="ltr" autocomplete="off">
   <div id="eMsg" style="min-height:20px;font-size:14px;margin-bottom:6px"></div>
   <div class="row"><button class="pri" id="eGo">מנה כעורך</button><button id="eCancel">סגור</button></div>
+</div></div>
+
+<div class="dlg" id="dPh"><div class="box" style="max-width:480px;max-height:85vh;overflow:auto">
+  <h3>תמונות לאישור</h3><div id="phList" style="display:flex;flex-direction:column;gap:12px"></div>
+  <button id="phClose" style="width:100%;margin-top:10px">סגירה</button>
 </div></div>
 
 <div class="dlg" id="dAsk"><div class="box">
@@ -352,7 +358,7 @@ async function login(){
 async function afterLogin(){
   const {data}=await sb.from('editors').select('*').eq('user_id',user.id).maybeSingle();
   if(!data){$('dLogin').classList.add('show');$('lMsg').textContent='המשתמש לא מורשה לעריכה (חסר בטבלת editors).';return}
-  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('addEd').hidden=!data.is_admin; await loadCems();
+  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); await loadCems();
 }
 async function addEditor(){
   const name=$('eName').value.trim(), email=$('eEmail').value.trim().toLowerCase(), pass=$('ePass').value;
@@ -380,6 +386,23 @@ $('cem').onchange=onCemChange; $('plot').onchange=onPlotChange; $('gush').onchan
 $('newCem').onclick=()=>$('dCem').classList.add('show'); $('cCancel').onclick=()=>$('dCem').classList.remove('show'); $('cGo').onclick=addCem;
 $('lGo').onclick=login; $('lPass').onkeydown=e=>{if(e.key==='Enter')login()};
 $('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
+async function phCount(){const {count}=await sb.from('grave_photos').select('id',{count:'exact',head:true}).eq('status','pending');$('bPh').textContent=count?`תמונות (${count})`:'תמונות'}
+async function phOpen(){
+  $('dPh').classList.add('show'); $('phList').textContent='טוען…';
+  const {data,error}=await sb.from('grave_photos').select('id,path,deceased(first_name,last_name,plot,row_no,grave_no)').eq('status','pending').order('created_at').limit(30);
+  if(error){$('phList').textContent='לא ניתן לטעון (האם הורץ photos_locations.sql?)';return}
+  if(!data.length){$('phList').textContent='אין תמונות שממתינות לאישור.';return}
+  $('phList').innerHTML=data.map(p=>{const d=p.deceased||{},u=sb.storage.from('grave-photos').getPublicUrl(p.path).data.publicUrl;
+    return `<div data-id="${p.id}" data-path="${p.path}"><img src="${u}" style="width:100%;border-radius:10px"><div style="margin:4px 0">${d.first_name||''} ${d.last_name||''} · חלקה ${d.plot||'?'} שורה ${d.row_no||'?'} קבר ${d.grave_no||'?'}</div>
+    <div class="row"><button class="ok" data-a="approved">אישור</button><button class="bad" data-a="rejected">דחייה</button></div></div>`}).join('');
+}
+$('phList').onclick=async e=>{const b=e.target.closest('button[data-a]');if(!b)return;const it=b.closest('[data-id]');b.disabled=true;
+  const {error}=await sb.from('grave_photos').update({status:b.dataset.a}).eq('id',+it.dataset.id);
+  if(error){alertMsg(it,error.message);return}
+  if(b.dataset.a==='rejected')await sb.storage.from('grave-photos').remove([it.dataset.path]);
+  it.remove(); phCount(); if(!$('phList').children.length)$('phList').textContent='אין תמונות שממתינות לאישור.'};
+function alertMsg(el,t){el.insertAdjacentHTML('beforeend',`<div style="color:var(--bad)">${t}</div>`)}
+$('bPh').onclick=phOpen; $('phClose').onclick=()=>$('dPh').classList.remove('show');
 $('addEd').onclick=()=>{$('eMsg').textContent='';$('dEd').classList.add('show')};
 $('eCancel').onclick=()=>$('dEd').classList.remove('show'); $('eGo').onclick=addEditor;
 document.addEventListener('visibilitychange',async()=>{if(walking&&document.visibilityState==='visible'){try{wake=await navigator.wakeLock?.request('screen')}catch{}}});

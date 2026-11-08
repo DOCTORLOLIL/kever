@@ -58,6 +58,13 @@ footer a{color:var(--mute)}
 .back{position:absolute;top:calc(12px + env(safe-area-inset-top));inset-inline-start:12px;z-index:600;border:0;border-radius:50%;width:44px;height:44px;background:var(--card);box-shadow:0 1px 6px #0004;font-size:22px;cursor:pointer}
 .lbl{background:none;border:0;box-shadow:none;font-weight:700;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;font-size:13px;text-align:center}
 .me{background:#1f8fff;border:3px solid #fff;border-radius:50%;box-shadow:0 0 6px #0008}
+.photos{display:flex;gap:8px;overflow-x:auto;margin:8px 0}
+.photos img{height:84px;border-radius:10px;cursor:pointer}
+.attach{display:flex;align-items:center;gap:10px;border:1px dashed var(--line);border-radius:12px;padding:8px 12px;margin-top:10px;cursor:pointer;background:none;width:100%;text-align:start}
+.attach b{color:var(--acc)}
+.attach small{display:block;color:var(--mute);font-size:12px}
+.ask{background:var(--acc2);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:15px}
+.ask .acts .btn{padding:9px 12px}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:3000;font-size:14px}
 </style>
 </head>
@@ -107,11 +114,18 @@ footer a{color:var(--mute)}
       <div><small>שורה</small><b id="dRow">—</b></div>
       <div><small>קבר</small><b id="dGrave">—</b></div>
     </div>
+    <div class="photos" id="photos"></div>
+    <div class="ask hide" id="askLoc">
+      <div><b>עומדים ממש ליד הקבר?</b> שמרו את המיקום המדויק שלו, כדי שהבאים אחריכם יגיעו ישר אליו.</div>
+      <div class="acts"><button class="btn" id="locYes">שמירת מיקום</button><button class="btn sec" id="locNo">לא עכשיו</button></div>
+    </div>
     <div class="navline" id="navline"><div class="arrow" id="arrow">↑</div><div id="navText">מאתרים את המיקום שלכם…</div></div>
     <div class="acts">
       <button class="btn" id="bDrive">נסיעה לבית העלמין</button>
       <button class="btn sec" id="bShare">שיתוף</button>
     </div>
+    <button class="attach" id="bPhoto"><span style="font-size:22px">📷</span><span><b>צרף תמונה</b><small>צרף תמונת הקבר להנצחה</small></span></button>
+    <input type="file" id="photoIn" accept="image/*" hidden>
   </div>
 </section>
 
@@ -218,7 +232,8 @@ async function openDeceased(id,push){
   $('dMeta').textContent=sub(data);
   $('dPlot').textContent=data.plot||'—'; $('dRow').textContent=data.row_no||'—'; $('dGrave').textContent=data.grave_no||'—';
   document.title=`${fullName(data)} – איתור קברים`;
-  show('detail'); map.invalidateSize(); drawMap(data); startGps(); updateNav();
+  show('detail'); map.invalidateSize(); drawMap(data); $('askLoc').classList.add('hide'); $('photos').innerHTML='';
+  await loadGrave(id); loadPhotos(id); startGps(); updateNav();
 }
 $('back').onclick=()=>{if(history.state?.d)history.back();else{history.replaceState(null,'',location.pathname);show('home')}};
 window.onpopstate=()=>route();
@@ -234,21 +249,72 @@ function startGps(){
 function bearing(a,b){const r=Math.PI/180,y=Math.sin((b[1]-a[1])*r)*Math.cos(b[0]*r),x=Math.cos(a[0]*r)*Math.sin(b[0]*r)-Math.sin(a[0]*r)*Math.cos(b[0]*r)*Math.cos((b[1]-a[1])*r);return (Math.atan2(y,x)/r+360)%360}
 const dirs=['צפונה','צפון-מזרח','מזרחה','דרום-מזרח','דרומה','דרום-מערב','מערבה','צפון-מערב'];
 function inPoly(pt,poly){const ll=poly.getLatLngs()[0];let c=false;for(let i=0,j=ll.length-1;i<ll.length;j=i++){const a=ll[i],b=ll[j];if((a.lat>pt[0])!==(b.lat>pt[0])&&pt[1]<(b.lng-a.lng)*(pt[0]-a.lat)/(b.lat-a.lat)+a.lng)c=!c}return c}
+let gravePt=null, graveMk=null, fixes=[];
 function updateNav(){
   if($('detail').classList.contains('hide'))return;
   if(lastPos){if(!meMk)meMk=L.marker(lastPos,{icon:L.divIcon({className:'me',iconSize:[18,18]}),zIndexOffset:1000}).addTo(map);else meMk.setLatLng(lastPos)}
-  if(!cur?.plot){$('navText').textContent='המיקום של הקבר לא רשום אצלנו.';$('arrow').style.visibility='hidden';return}
-  if(!target){$('navText').textContent=`חלקה ${cur.plot} עוד לא סומנה על המפה. היעזרו בשילוט בבית העלמין.`;$('arrow').style.visibility='hidden';return}
+  const hasTarget=gravePt||target;
+  if(!hasTarget){$('arrow').style.visibility='hidden';
+    $('navText').textContent=!cur?.plot?'המיקום של הקבר לא רשום אצלנו.':`חלקה ${cur.plot} עוד לא סומנה על המפה. היעזרו בשילוט בבית העלמין.`;return}
   if(!lastPos){$('arrow').style.visibility='hidden';return}
-  const t=[target.lat,target.lng], d=map.distance(lastPos,t), br=bearing(lastPos,t);
+  const t=gravePt||[target.lat,target.lng], d=map.distance(lastPos,t), br=bearing(lastPos,t);
   if(routeLine)routeLine.setLatLngs([lastPos,t]);else routeLine=L.polyline([lastPos,t],{color:'#1f8fff',weight:3,dashArray:'6 8'}).addTo(map);
   $('arrow').style.visibility='visible';
-  if(inPoly(lastPos,targetPoly)){$('arrow').textContent='✓';$('arrow').style.transform='none';
-    $('navText').textContent=`הגעתם לחלקה ${cur.plot}.${cur.row_no?` חפשו שורה ${cur.row_no}`:''}${cur.grave_no?`, קבר ${cur.grave_no}`:''}.`;return}
+  const atGrave=gravePt&&d<=6, inPlot=!gravePt&&targetPoly&&inPoly(lastPos,targetPoly);
+  if(atGrave||inPlot){$('arrow').textContent='✓';$('arrow').style.transform='none';
+    $('navText').textContent=atGrave?`הגעתם. הקבר כאן, ברדיוס של כמה מטרים.${cur.grave_no?` (קבר ${cur.grave_no})`:''}`
+      :`הגעתם לחלקה ${cur.plot}.${cur.row_no?` חפשו שורה ${cur.row_no}`:''}${cur.grave_no?`, קבר ${cur.grave_no}`:''}.`;
+    maybeAskLoc();return}
   $('arrow').textContent='↑'; $('arrow').style.transform=`rotate(${heading!=null?br-heading:br}deg)`;
-  const far=d>2000;
-  $('navText').textContent=far?`אתם במרחק ${(d/1000).toFixed(1)} ק"מ מבית העלמין.`:`${Math.round(d)} מטר ${dirs[Math.round(br/45)%8]} עד חלקה ${cur.plot}`+(heading==null?' (החץ מכוון לצפון)':'');
+  const dest=gravePt?'הקבר':`חלקה ${cur.plot}`;
+  $('navText').textContent=d>2000?`אתם במרחק ${(d/1000).toFixed(1)} ק"מ מבית העלמין.`:`${Math.round(d)} מטר ${dirs[Math.round(br/45)%8]} עד ${dest}`+(heading==null?' (החץ מכוון לצפון)':'');
 }
+
+// ---------- מיקום מדויק של הקבר ----------
+async function loadGrave(id){
+  gravePt=null; if(graveMk){graveMk.remove();graveMk=null}
+  const {data}=await sb.from('grave_locations').select('lat,lng,accuracy').eq('deceased_id',id);
+  if(data&&data.length){let w=0,la=0,lo=0;for(const r of data){const k=1/Math.max(r.accuracy||10,2)**2;w+=k;la+=r.lat*k;lo+=r.lng*k}
+    gravePt=[la/w,lo/w]; graveMk=L.circleMarker(gravePt,{radius:7,color:'#fff',weight:2,fillColor:'#e0a83a',fillOpacity:1}).addTo(map).bindTooltip('הקבר');
+    map.setView(gravePt,19)}
+}
+function maybeAskLoc(){const k='asked:'+cur.id; if(store.get(k,false))return; $('askLoc').classList.remove('hide')}
+$('locNo').onclick=()=>{store.set('asked:'+cur.id,true);$('askLoc').classList.add('hide')};
+$('locYes').onclick=async()=>{
+  const b=$('locYes'); b.disabled=true; let best=null; fixes=[];
+  b.textContent='עמדו במקום… 8';
+  const id=navigator.geolocation.watchPosition(p=>{fixes.push(p.coords);if(!best||p.coords.accuracy<best.accuracy)best=p.coords},()=>{},{enableHighAccuracy:true,maximumAge:0});
+  for(let i=7;i>=0;i--){await new Promise(r=>setTimeout(r,1000));b.textContent=`עמדו במקום… ${i}`}
+  navigator.geolocation.clearWatch(id); b.disabled=false; b.textContent='שמירת מיקום';
+  if(!best||best.accuracy>15){toast(`הדיוק עכשיו נמוך (${best?Math.round(best.accuracy):'?'} מ'). נסו שוב בשטח פתוח.`);return}
+  const good=fixes.filter(c=>c.accuracy<=best.accuracy*1.5), lat=good.reduce((a,c)=>a+c.latitude,0)/good.length, lng=good.reduce((a,c)=>a+c.longitude,0)/good.length;
+  const {error}=await sb.from('grave_locations').insert({deceased_id:cur.id,lat,lng,accuracy:Math.round(best.accuracy*10)/10});
+  if(error){toast('השמירה לא הצליחה. נסו שוב בעוד רגע.');return}
+  store.set('asked:'+cur.id,true); $('askLoc').classList.add('hide'); toast('תודה! המיקום נשמר'); await loadGrave(cur.id); updateNav();
+};
+
+// ---------- תמונות ----------
+async function loadPhotos(id){
+  const {data}=await sb.from('grave_photos').select('path').eq('deceased_id',id).eq('status','approved').order('created_at');
+  $('photos').innerHTML=(data||[]).map(p=>{const u=sb.storage.from('grave-photos').getPublicUrl(p.path).data.publicUrl;return `<img src="${esc(u)}" alt="תמונת הקבר" loading="lazy" onclick="window.open(this.src)">`}).join('');
+}
+$('bPhoto').onclick=()=>$('photoIn').click();
+$('photoIn').onchange=async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f||!cur)return;
+  toast('מעלים את התמונה…');
+  try{
+    const img=await createImageBitmap(f), k=Math.min(1,1600/Math.max(img.width,img.height));
+    const c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);   // ציור מחדש מסיר את נתוני המיקום מהקובץ
+    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));
+    const path=`pending/${cur.id}/${crypto.randomUUID()}.jpg`;
+    const up=await sb.storage.from('grave-photos').upload(path,blob,{contentType:'image/jpeg'});
+    if(up.error)throw up.error;
+    const {error}=await sb.from('grave_photos').insert({deceased_id:cur.id,path});
+    if(error)throw error;
+    toast('תודה! התמונה תופיע אחרי אישור');
+  }catch(err){toast('ההעלאה לא הצליחה. נסו שוב בעוד רגע.')}
+};
 
 // ---------- פעולות ----------
 $('bDrive').onclick=()=>{const t=target||(cem.center_lat?{lat:cem.center_lat,lng:cem.center_lng}:null);if(!t)return;
