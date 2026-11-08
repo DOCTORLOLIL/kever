@@ -11,16 +11,19 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,"Segoe UI",Arial,sans-serif}
 body{display:flex;flex-direction:column}
-header{background:var(--card);border-bottom:1px solid var(--line);padding:8px 10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-header select,header input{font-size:16px;padding:7px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
-header .grow{flex:1;min-width:110px}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.bar{display:flex;gap:6px;align-items:center;min-width:0}
+header select,header input{font-size:16px;height:40px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
+header .grow{flex:1 1 auto;width:0}
+header button{flex:0 0 auto;height:40px;min-width:40px;padding:0 10px;font-size:15px;white-space:nowrap}
+.tag{font-size:14px;color:var(--mute);flex:0 0 auto}
 #map{flex:1;min-height:200px}
 #panel{background:var(--card);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom))}
 #stats{display:flex;gap:12px;font-size:14px;color:var(--mute);flex-wrap:wrap;margin-bottom:6px}
 #stats b{color:var(--ink)}
 #msg{font-size:14px;min-height:20px;margin-bottom:6px}
 .row{display:flex;gap:6px;flex-wrap:wrap}
-button{font-size:16px;padding:11px 12px;border:0;border-radius:10px;background:var(--line);color:var(--ink);flex:1;min-width:80px;cursor:pointer}
+button{font-size:15px;padding:11px 6px;white-space:nowrap;border:0;border-radius:10px;background:var(--line);color:var(--ink);flex:1;min-width:80px;cursor:pointer}
 button.pri{background:var(--pri);color:#fff}button.ok{background:var(--ok);color:#fff}button.bad{background:var(--bad);color:#fff}
 button:disabled{opacity:.4}
 button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
@@ -36,14 +39,20 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
 </head>
 <body>
 <header>
-  <select id="cem" class="grow" aria-label="בית עלמין"></select>
-  <button class="small" id="newCem" title="בית עלמין חדש">＋</button>
-  <input id="gush" value="1" style="width:56px" aria-label="גוש" placeholder="גוש">
-  <input id="plot" list="plotList" style="width:84px" aria-label="חלקה" placeholder="חלקה">
-  <datalist id="plotList"></datalist>
-  <span id="demo" class="demo" hidden>מצב ניסיון</span>
-  <button class="small" id="addEd" hidden title="מינוי עורך נוסף">👤＋</button>
-  <button class="small" id="logout" hidden>יציאה</button>
+  <div class="bar">
+    <select id="cem" class="grow" aria-label="בית עלמין"></select>
+    <button id="newCem" title="בית עלמין חדש" aria-label="בית עלמין חדש">＋</button>
+    <span id="demo" class="demo" hidden>מצב ניסיון</span>
+    <button id="addEd" hidden title="מינוי עורך נוסף">＋ עורך</button>
+    <button id="logout" hidden>יציאה</button>
+  </div>
+  <div class="bar">
+    <span class="tag">גוש</span>
+    <input id="gush" value="1" style="width:48px;flex:0 0 48px;text-align:center" aria-label="גוש">
+    <span class="tag">חלקה</span>
+    <input id="plot" class="grow" list="plotList" aria-label="חלקה" placeholder="בחר או הקלד">
+    <datalist id="plotList"></datalist>
+  </div>
 </header>
 <div id="map"></div>
 <div id="panel">
@@ -116,7 +125,7 @@ let cems=[], plots=[], pts=[], walking=false, tapping=false, watchId=null, lastF
 
 // ---------- מפה ----------
 const map = L.map('map',{zoomControl:false}).setView([31.3152,34.6103],18);
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:21,maxNativeZoom:19,attribution:'Esri'}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:21,maxNativeZoom:18,attribution:'Esri'}).addTo(map);
 L.control.zoom({position:'topleft'}).addTo(map);
 const plotLayer = L.layerGroup().addTo(map);
 const draft = L.polygon([], {color:'#ffcc00',weight:3,fillOpacity:.15,dashArray:'6 4'}).addTo(map);
@@ -179,7 +188,7 @@ function onFix(pos){
   const c=[pos.coords.latitude,pos.coords.longitude], acc=pos.coords.accuracy; lastFix={c,acc};
   me.setLatLng(c).addTo(map); meAcc.setLatLng(c).setRadius(acc).addTo(map);
   $('sAcc').textContent=Math.round(acc)+" מ'"; $('sAcc').style.color=acc<=MAX_ACC?'var(--ok)':'var(--bad)';
-  if(!followed){map.setView(c,19);followed=true}
+  if(!followed){map.setView(c,18);followed=true}
   if(walking){
     if(acc>MAX_ACC){msg(`דיוק חלש (${Math.round(acc)} מ') — חכה רגע במקום.`,'warn');return}
     if(!pts.length||dist(pts[pts.length-1],c)>=MIN_STEP){pts.push(c);drawDraft();msg('מקליט… המשך ללכת לאורך גבול החלקה.','ok')}
