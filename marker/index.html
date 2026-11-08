@@ -35,6 +35,11 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
 .box input{width:100%;font-size:16px;padding:9px;margin-bottom:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 .lbl{background:none;border:0;box-shadow:none;font-weight:700;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;font-size:15px}
 .demo{background:var(--warn);color:#fff;font-size:13px;padding:3px 8px;border-radius:6px}
+.ovbox{background:var(--card);color:var(--ink);border-radius:10px;padding:6px;display:flex;flex-direction:column;gap:5px;box-shadow:0 1px 5px #0006;min-width:120px}
+.ovbox button{flex:0 0 auto;min-width:0;padding:7px 8px;font-size:14px}
+.ovbox input[type=range]{width:110px}
+.hdl{background:#ff3b30;border:3px solid #fff;border-radius:50%;box-shadow:0 0 4px #000}
+.hdl.mv{background:#1f8fff}
 </style>
 </head>
 <body>
@@ -127,7 +132,76 @@ let cems=[], plots=[], pts=[], walking=false, tapping=false, watchId=null, lastF
 const map = L.map('map',{zoomControl:false}).setView([31.3152,34.6103],18);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:21,maxNativeZoom:18,attribution:'Esri'}).addTo(map);
 L.control.zoom({position:'topleft'}).addTo(map);
+map.createPane('drone').style.zIndex=350;
 const plotLayer = L.layerGroup().addTo(map);
+
+// ---------- תצלום רחפן מעל המפה ----------
+const OV_DEFAULT={ofakim:{url:'../overlays/ofakim-2026.jpg',corners:[[31.31206,34.60824],[31.31834,34.60824],[31.31206,34.61238]]}};
+const Ov=L.Layer.extend({
+  initialize(url,c){this.url=url;this.c=c.map(p=>L.latLng(p))},
+  onAdd(m){this.img=L.DomUtil.create('img','leaflet-zoom-hide');this.img.src=this.url;
+    this.img.style.cssText='position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;max-width:none';
+    this.img.style.opacity=ovOpacity;this.img.onload=()=>this.update();m.getPane('drone').appendChild(this.img);
+    m.on('zoomend viewreset moveend',this.update,this);this.update()},
+  onRemove(m){this.img.remove();m.off('zoomend viewreset moveend',this.update,this)},
+  setCorners(c){this.c=c.map(p=>L.latLng(p));this.update()},
+  setOpacity(o){if(this.img)this.img.style.opacity=o},
+  update(){const im=this.img;if(!im||!im.naturalWidth||!this._map)return;const w=im.naturalWidth,h=im.naturalHeight;
+    const [a,b,c]=this.c.map(x=>this._map.latLngToLayerPoint(x));im.style.width=w+'px';im.style.height=h+'px';
+    im.style.transform=`matrix(${(b.x-a.x)/w},${(b.y-a.y)/w},${(c.x-a.x)/h},${(c.y-a.y)/h},${a.x},${a.y})`}
+});
+let ov=null, ovCorners=null, ovOn=store.get('ovOn',true), ovOpacity=store.get('ovOp',0.85), aligning=false, hMove=null, hRot=null;
+const ovCtl=L.control({position:'topright'});
+ovCtl.onAdd=()=>{const d=L.DomUtil.create('div','ovbox');L.DomEvent.disableClickPropagation(d);L.DomEvent.disableScrollPropagation(d);
+  d.innerHTML=`<button id="ovTog">תצלום רחפן</button><input id="ovOp" type="range" min="0" max="1" step="0.05" aria-label="שקיפות">
+  <button id="ovAlign">יישור תמונה</button><div id="ovAl" style="display:none;flex-direction:column;gap:5px">
+  <div style="font-size:12px;max-width:130px">גרור את הנקודה הכחולה להזזה ואת האדומה לסיבוב וגודל. התאם למפה שמתחת.</div>
+  <button id="ovR90">↻ 90°</button><button class="ok" id="ovSave">שמור יישור</button><button id="ovCancel">בטל</button></div>`;return d};
+function ovSetup(c){
+  if(ov){map.removeLayer(ov);ov=null}
+  const def=OV_DEFAULT[c?.id]; const url=c?.overlay_url||def?.url;
+  ovCorners=store.get('ovC:'+c?.id,null)||c?.overlay_corners||def?.corners;
+  $('ovTog').parentElement.style.display=url&&ovCorners?'':'none';
+  if(!url||!ovCorners)return;
+  ov=new Ov(url,ovCorners); if(ovOn)ov.addTo(map);
+  $('ovTog').classList.toggle('on',ovOn); $('ovOp').value=ovOpacity;
+}
+// גיאומטריה ליישור: מספרים מרוכבים במטרים סביב המרכז
+const toM=(p,o)=>[(p[1]-o[1])*111320*Math.cos(rad(o[0])),(p[0]-o[0])*111320];
+const fromM=(m,o)=>[o[0]+m[1]/111320,o[1]+m[0]/(111320*Math.cos(rad(o[0])))];
+const ovCenter=()=>[(ovCorners[1][0]+ovCorners[2][0])/2,(ovCorners[1][1]+ovCorners[2][1])/2];
+function ovTransform(o,k){ // o=מרכז, k=[re,im] כפל מרוכב
+  ovCorners=ovCorners.map(p=>{const [x,y]=toM(p,o);return fromM([x*k[0]-y*k[1],x*k[1]+y*k[0]],o)});ov.setCorners(ovCorners)}
+function ovHandles(){
+  hMove?.remove();hRot?.remove(); if(!aligning)return;
+  const ic=c=>L.divIcon({className:'hdl'+c,iconSize:[22,22]});
+  hMove=L.marker(ovCenter(),{draggable:true,icon:ic(' mv'),zIndexOffset:1000}).addTo(map);
+  hRot=L.marker(ovCorners[1],{draggable:true,icon:ic(''),zIndexOffset:1000}).addTo(map);
+  let last=null;
+  hMove.on('dragstart',()=>last=ovCenter()).on('drag',e=>{const n=[e.latlng.lat,e.latlng.lng],d=[n[0]-last[0],n[1]-last[1]];
+    ovCorners=ovCorners.map(p=>[p[0]+d[0],p[1]+d[1]]);last=n;ov.setCorners(ovCorners);hRot.setLatLng(ovCorners[1])});
+  hRot.on('drag',e=>{const o=ovCenter(),v=toM(ovCorners[1],o),w=toM([e.latlng.lat,e.latlng.lng],o),n=v[0]*v[0]+v[1]*v[1];
+    ovTransform(o,[(w[0]*v[0]+w[1]*v[1])/n,(w[1]*v[0]-w[0]*v[1])/n])});
+}
+function ovAlignMode(on){aligning=on;$('ovAl').style.display=on?'flex':'none';$('ovAlign').hidden=on;
+  if(on&&!map.hasLayer(ov)){ovOn=true;ov.addTo(map)} if(on){ov.setOpacity(Math.min(ovOpacity,0.6));map.fitBounds(L.latLngBounds(ovCorners))} else ov?.setOpacity(ovOpacity);
+  ovHandles()}
+async function ovSaveAlign(){
+  const c=cems.find(x=>x.id===$('cem').value); const r=ovCorners.map(p=>[+p[0].toFixed(7),+p[1].toFixed(7)]);
+  store.set('ovC:'+c.id,r); if(c)c.overlay_corners=r;
+  if(!DEMO){const {error}=await sb.from('cemeteries').update({overlay_corners:r}).eq('id',c.id);
+    if(error){msg('היישור נשמר בטלפון בלבד ('+error.message+').','warn');ovAlignMode(false);return}}
+  msg('יישור התמונה נשמר ✓','ok'); ovAlignMode(false);
+}
+function ovWire(){
+  $('ovTog').onclick=()=>{ovOn=!ovOn;store.set('ovOn',ovOn);$('ovTog').classList.toggle('on',ovOn);if(!ov)return;ovOn?ov.addTo(map):map.removeLayer(ov);if(!ovOn&&aligning)ovAlignMode(false)};
+  $('ovOp').oninput=e=>{ovOpacity=+e.target.value;store.set('ovOp',ovOpacity);ov?.setOpacity(ovOpacity)};
+  $('ovAlign').onclick=()=>ovAlignMode(true);
+  $('ovR90').onclick=()=>{ovTransform(ovCenter(),[0,-1]);ovHandles()};
+  $('ovSave').onclick=ovSaveAlign;
+  $('ovCancel').onclick=()=>{const c=cems.find(x=>x.id===$('cem').value);ovAlignMode(false);ovSetup(c)};
+}
+ovCtl.addTo(map); ovWire();
 const draft = L.polygon([], {color:'#ffcc00',weight:3,fillOpacity:.15,dashArray:'6 4'}).addTo(map);
 const draftDots = L.layerGroup().addTo(map);
 const me = L.circleMarker([0,0],{radius:7,color:'#fff',weight:2,fillColor:'#1f8fff',fillOpacity:1});
@@ -230,6 +304,7 @@ async function loadPlots(){
 async function onCemChange(){
   store.set('lastCem',$('cem').value); const c=cems.find(x=>x.id===$('cem').value);
   if(c&&c.center_lat&&!lastFix)map.setView([c.center_lat,c.center_lng],18);
+  if(aligning)ovAlignMode(false); ovSetup(c);
   await loadPlots(); onPlotChange();
 }
 async function save(){
