@@ -408,7 +408,7 @@ $('bTef').onclick=()=>{const q=new URLSearchParams({n:cur.first_name||'',p:cur.m
 const DOW=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 let yzList=[];
 function showYahrzeit(r){
-  yzList=[]; $('yz').classList.add('hide'); if(!r.death_date||!window.HebCal)return;
+  yzList=[]; $('yz').classList.add('hide'); if(!r.death_date||typeof HebCal==='undefined')return;
   const [y,m,d]=r.death_date.split('-').map(Number); yzList=HebCal.nextYahrzeits(new Date(y,m-1,d),5);
   const z=yzList[0]; if(!z)return;
   $('yzDate').textContent=HebCal.fmt(z);
