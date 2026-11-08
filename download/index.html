@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>הורדת Grave Marker</title>
+<meta name="description" content="הורדת אפליקציית Grave Marker – איתור קברים וניווט עד הקבר">
+<meta name="theme-color" content="#1f5b57">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#f4f1ec;--card:#fffdf9;--ink:#23262b;--mute:#6d6a64;--line:#e2ddd4;--acc:#1f5b57;--acc2:#e9f1ef}
+@media (prefers-color-scheme:dark){:root{--bg:#15181b;--card:#1e2226;--ink:#ece9e3;--mute:#a19d95;--line:#30353a;--acc2:#1f2d2c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,Arial,sans-serif}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px 24px}
+.top{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+.top img{border-radius:10px}.top b{font-size:19px;display:block}.top small{color:var(--mute)}
+.top a{color:inherit;text-decoration:none;display:flex;align-items:center;gap:12px}
+.big{margin:18px 0;background:var(--acc);color:#fff;border-radius:16px;padding:20px;text-align:center}
+.big h1{font-size:20px;margin:0}
+.dl{display:inline-block;background:#e0a83a;color:#23262b;font-weight:700;border-radius:12px;padding:13px 26px;margin-top:12px;text-decoration:none;font-size:17px}
+.big small{display:block;color:#cfe3df;margin-top:10px;font-size:13px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;line-height:1.8;margin-bottom:14px}
+.box ol{margin:4px 0;padding-inline-start:20px}
+.qr{display:flex;gap:14px;align-items:center;margin-bottom:14px;color:var(--mute);font-size:14px}
+#qr{background:#fff;padding:6px;border-radius:8px;line-height:0;flex:0 0 auto}
+#qr img{width:112px;height:112px;image-rendering:pixelated}
+.ios{background:var(--acc2);border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.7}
+footer{text-align:center;color:var(--mute);font-size:13px;padding:22px 0 0;line-height:1.9}
+footer a{color:var(--mute)}
+</style>
+</head>
+<body>
+<div class="top"><a href="/"><img src="/icons/icon-192.png" alt="" width="44" height="44"><span><b>Grave Marker</b><small>הורדת האפליקציה</small></span></a></div>
+<div class="wrap">
+  <div class="big">
+    <h1>אפליקציה לאנדרואיד</h1>
+    <a class="dl" id="dl" href="https://github.com/DOCTORLOLIL/gravemarker/releases/download/test-build/app-arm64-v8a-release.apk">⬇ הורדה</a>
+    <small id="meta">בחינם · גרסת בדיקה</small>
+  </div>
+  <div class="box"><b>איך מתקינים</b>
+    <ol><li>לוחצים "הורדה".</li><li>פותחים את הקובץ שירד.</li><li>מאשרים "התקנה ממקור לא ידוע" (רק בפעם הראשונה).</li></ol>
+  </div>
+  <div class="qr"><div id="qr"></div><span>נכנסתם מהמחשב? סרקו את הקוד עם הטלפון כדי להוריד ישר אליו.</span></div>
+  <div class="ios">📱 <b>אייפון:</b> פתחו את <a href="/">האתר</a> בספארי, לחצו על כפתור השיתוף ובחרו "הוספה למסך הבית". האתר יעבוד כמו אפליקציה.</div>
+  <footer>בקרוב גם ב-Google Play<br><a href="/">חזרה לחיפוש</a>
+    <div>נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+const url=document.getElementById('dl').href;
+try{const q=qrcode(0,'M');q.addData(url);q.make();document.getElementById('qr').innerHTML=q.createImgTag(4,0)}catch(e){document.querySelector('.qr').style.display='none'}
+// גודל ותאריך הגרסה האחרונה מ-GitHub
+fetch('https://api.github.com/repos/DOCTORLOLIL/gravemarker/releases/tags/test-build').then(r=>r.ok?r.json():null).then(j=>{
+  const a=j?.assets?.find(x=>x.name.endsWith('.apk')); if(!a)return;
+  const d=new Date(a.updated_at), dmy=`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+  document.getElementById('meta').textContent=`בחינם · ${Math.round(a.size/1048576)}MB · עודכן ${dmy}`;
+}).catch(()=>{});
+</script>
+</body>
+</html>

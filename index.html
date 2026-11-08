@@ -45,7 +45,23 @@ header.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 16p
 .item b{font-size:17px}
 .item .sub{color:var(--mute);font-size:14px;margin-top:3px}
 .loc{display:inline-block;background:var(--acc2);color:var(--acc);border-radius:8px;padding:2px 8px;font-size:13px;margin-top:6px}
-footer{text-align:center;color:var(--mute);font-size:13px;padding:24px 0}
+footer{text-align:center;color:var(--mute);font-size:13px;padding:24px 0;line-height:1.9}
+.built{margin-top:6px}
+.hero{background:var(--acc);color:#fff;text-align:center;padding:24px 16px 16px}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .hero{background:#1f5b57}}
+.hero img{border-radius:16px}
+.hero h1{font-family:Heebo,Arial,sans-serif;font-size:30px;letter-spacing:.5px;margin:8px 0 2px}
+.hero p{margin:0 0 14px;color:#cfe3df}
+.hero .search{max-width:560px;margin:0 auto}
+.hero .search input{background:#fff;color:#23262b;border:0}
+.btn.gold{background:#e0a83a;color:#23262b;font-weight:700}
+.cemsel{display:block;margin-top:8px;font-size:13px;color:#cfe3df}
+.cemsel select{background:transparent;color:#fff;border:1px solid #ffffff55;border-radius:8px;padding:3px 6px;margin-inline-start:4px}
+.cemsel select option{color:#23262b}
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.feat div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;font-size:14px}
+.feat span{font-size:22px;display:block}.feat b{display:block;margin:4px 0 2px;font-size:15px}.feat small{color:var(--mute)}
+.cta{display:block;text-align:center;margin:14px 0 4px;padding:14px;font-size:17px;font-weight:700}
 footer a{color:var(--mute)}
 /* פרטים + מפה */
 #detail{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg)}
@@ -106,21 +122,31 @@ h3.grp{font-size:15px;color:var(--mute);margin:18px 2px 8px}
 
 <!-- חיפוש -->
 <section id="home" class="hide">
-  <header class="top">
-    <div class="brand">
-      <h1>איתור קברים</h1>
-      <select id="cem" aria-label="בית עלמין"></select>
-    </div>
+  <header class="hero">
+    <img src="/icons/icon-192.png" alt="" width="68" height="68">
+    <h1>Grave Marker</h1>
+    <p>איתור קברים וניווט עד הקבר</p>
     <form class="search" id="sform">
       <input id="q" type="search" placeholder="שם הנפטר, שם האב או האם" autocomplete="off" enterkeyhint="search" aria-label="חיפוש">
-      <button class="btn" type="submit">חיפוש</button>
+      <button class="btn gold" type="submit">חיפוש</button>
     </form>
+    <label class="cemsel">בית העלמין <select id="cem" aria-label="בית עלמין"></select></label>
   </header>
   <div class="wrap">
-    <div class="offl"><span id="offTxt">שמרו את בית העלמין בטלפון כדי שיעבוד גם בלי קליטה (קל יותר מסרטון קצר בוואטסאפ).</span><button class="btn sec" id="offBtn">שמירה</button></div>
     <div id="hint" class="hint">כתבו שם משפחה, שם פרטי או שניהם. אפשר להוסיף שם אב או אם, או שנת פטירה.</div>
     <div id="res" class="res"></div>
-    <footer><a href="#" id="showContacts">אנשי קשר ומכיני מצבות</a> · <a href="#" id="showPrayer">ברכת הרואה קברים</a> · <a href="marker/">כניסת עורכים</a></footer>
+    <div id="intro">
+      <div class="feat">
+        <div><span>🧭</span><b>ניווט עד הקבר</b><small>חץ ומרחק, עד השורה והקבר</small></div>
+        <div><span>📶</span><b>גם בלי קליטה</b><small>שומרים פעם אחת בטלפון</small></div>
+        <div><span>🕯️</span><b>יום השנה</b><small>תאריך עברי ותזכורת ביומן</small></div>
+        <div><span>📖</span><b>תפילון</b><small>תהלים לפי אותיות השם</small></div>
+      </div>
+      <a class="btn cta" href="/download/">⬇ הורדת האפליקציה</a>
+    </div>
+    <div class="offl"><span id="offTxt">שמרו את בית העלמין בטלפון כדי שיעבוד גם בלי קליטה (קל יותר מסרטון קצר בוואטסאפ).</span><button class="btn sec" id="offBtn">שמירה</button></div>
+    <footer><a href="#" id="showContacts">אנשי קשר ומכיני מצבות</a> · <a href="#" id="showPrayer">ברכת הרואה קברים</a> · <a href="/download/">הורדת האפליקציה</a> · <a href="marker/">כניסת עורכים</a>
+      <div class="built">נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
   </div>
 </section>
 
@@ -203,7 +229,7 @@ async function setCem(id){
   const {data}=await sb.from('plots').select('gush,plot,boundary').eq('cemetery_id',id);
   plots=data||[];
 }
-$('cem').onchange=async()=>{await setCem($('cem').value);offStatus();$('res').innerHTML='';if($('q').value.trim())search()};
+$('cem').onchange=async()=>{await setCem($('cem').value);$('intro').classList.remove('hide');offStatus();$('res').innerHTML='';if($('q').value.trim())search()};
 
 // ---------- חיפוש ----------
 const fmtDate=d=>d?d.split('-').reverse().join('/'):'';
@@ -215,7 +241,7 @@ async function search(){
   const raw=$('q').value.trim(); if(!raw||!cem)return;
   const words=raw.split(/\s+/).map(w=>w.replace(/[^֐-׿a-zA-Z0-9'"\-]/g,'')).filter(w=>w.length>0).slice(0,4);
   if(!words.length)return;
-  $('hint').textContent='מחפשים…'; $('res').innerHTML='';
+  $('hint').textContent='מחפשים…'; $('res').innerHTML=''; $('intro').classList.add('hide');
   let q=sb.from('deceased').select('id,first_name,last_name,alt_name,father_name,mother_name,gush,plot,row_no,grave_no,death_date,death_date_hebrew').eq('cemetery_id',cem.id);
   for(const w of words){
     if(/^\d{4}$/.test(w)){q=q.gte('death_date',w+'-01-01').lte('death_date',w+'-12-31');continue}
