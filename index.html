@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Grave Marker – איתור קברים</title>
 <meta name="description" content="איתור קברים וניווט עד הקבר בבית העלמין">
+<meta name="theme-color" content="#1f5b57">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&family=Frank+Ruhl+Libre:wght@500;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -65,6 +69,8 @@ footer a{color:var(--mute)}
 .attach small{display:block;color:var(--mute);font-size:12px}
 .ask{background:var(--acc2);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:15px}
 .ask .acts .btn{padding:9px 12px}
+.offl{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-top:10px;font-size:14px}
+.offl .btn{padding:7px 12px;font-size:14px}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:3000;font-size:14px}
 </style>
 </head>
@@ -96,6 +102,7 @@ footer a{color:var(--mute)}
     </form>
   </header>
   <div class="wrap">
+    <div class="offl"><span id="offTxt">שמרו את בית העלמין בטלפון כדי שיעבוד גם בלי קליטה.</span><button class="btn sec" id="offBtn">שמירה</button></div>
     <div id="hint" class="hint">כתבו שם משפחה, שם פרטי או שניהם. אפשר להוסיף שם אב או אם, או שנת פטירה.</div>
     <div id="res" class="res"></div>
     <footer><a href="#" id="showPrayer">ברכת הרואה קברים</a> · <a href="marker/">כניסת עורכים</a></footer>
@@ -162,7 +169,7 @@ async function setCem(id){
   const {data}=await sb.from('plots').select('gush,plot,boundary').eq('cemetery_id',id);
   plots=data||[];
 }
-$('cem').onchange=async()=>{await setCem($('cem').value);$('res').innerHTML='';if($('q').value.trim())search()};
+$('cem').onchange=async()=>{await setCem($('cem').value);offStatus();$('res').innerHTML='';if($('q').value.trim())search()};
 
 // ---------- חיפוש ----------
 const fmtDate=d=>d?d.split('-').reverse().join('/'):'';
@@ -181,8 +188,9 @@ async function search(){
     const p=`*${w.replace(/["']/g,'')}*`;
     q=q.or(`last_name.ilike.${p},first_name.ilike.${p},alt_name.ilike.${p},father_name.ilike.${p},mother_name.ilike.${p}`);
   }
-  const {data,error}=await q.order('last_name').order('first_name').limit(60);
-  if(error){$('hint').textContent='החיפוש נכשל. נסו שוב בעוד רגע.';return}
+  let {data,error}=navigator.onLine?await q.order('last_name').order('first_name').limit(60):{error:1};
+  if(error){const loc=await localData(cem.id); if(loc)data=localSearch(loc,words);
+    else{$('hint').textContent='אין חיבור לאינטרנט. כשיש קליטה, לחצו "שמירה" כדי שהחיפוש יעבוד גם בלי קליטה.';return}}
   if(!data.length){$('hint').textContent='לא נמצאו תוצאות. נסו כתיב אחר או פחות מילים.';return}
   $('hint').textContent=data.length>=60?'נמצאו הרבה תוצאות. הוסיפו מילה כדי לצמצם.':`נמצאו ${data.length} תוצאות`;
   $('res').innerHTML=data.map(r=>`<button class="item" data-id="${r.id}"><b>${esc(fullName(r))}</b>${r.alt_name?` <span class="sub">(${esc(r.alt_name)})</span>`:''}
@@ -193,7 +201,7 @@ $('res').onclick=e=>{const b=e.target.closest('.item');if(b)openDeceased(+b.data
 
 // ---------- מפה ----------
 const map=L.map('map',{zoomControl:false,attributionControl:true});
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:21,maxNativeZoom:18,attribution:'Esri'}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:21,maxNativeZoom:18,crossOrigin:true,attribution:'Esri'}).addTo(map);
 map.createPane('drone').style.zIndex=350;
 const Ov=L.Layer.extend({
   initialize(url,c){this.url=url;this.c=c.map(p=>L.latLng(p))},
@@ -224,7 +232,8 @@ function drawMap(r){
 
 // ---------- נפטר ----------
 async function openDeceased(id,push){
-  const {data,error}=await sb.from('deceased').select('*').eq('id',id).maybeSingle();
+  let {data,error}=navigator.onLine?await sb.from('deceased').select('*').eq('id',id).maybeSingle():{error:1};
+  if(error||!data){for(const c of cems){const loc=await localData(c.id);const f=loc?.find(x=>x.id===id);if(f){data=f;error=null;break}}}
   if(error||!data){toast('לא מצאנו את הרשומה');return}
   cur=data;
   if(!cem||cem.id!==data.cemetery_id){if(cems.some(c=>c.id===data.cemetery_id)){$('cem').value=data.cemetery_id;await setCem(data.cemetery_id)}}
@@ -278,7 +287,8 @@ async function loadEstimate(r){
   estPt=null; if(estMk){estMk.remove();estMk=null}
   const row=parseInt(r.row_no), gr=parseInt(r.grave_no);
   if(!targetPoly||!(row>0)||!(gr>0))return;
-  const {data}=await sb.from('deceased').select('row_no,grave_no').eq('cemetery_id',cem.id).eq('gush',r.gush||'1').eq('plot',r.plot).limit(3000);
+  let {data}=navigator.onLine?await sb.from('deceased').select('row_no,grave_no').eq('cemetery_id',cem.id).eq('gush',r.gush||'1').eq('plot',r.plot).limit(3000):{};
+  if(!data?.length){const loc=await localData(cem.id);data=loc?.filter(x=>x.plot===r.plot&&(x.gush||'1')===(r.gush||'1'))}
   if(!data?.length)return;
   let nRows=0,maxG=0,maxGRow=0;
   for(const x of data){const a=parseInt(x.row_no),b=parseInt(x.grave_no);if(a>0)nRows=Math.max(nRows,a);if(b>0){maxG=Math.max(maxG,b);if(a===row)maxGRow=Math.max(maxGRow,b)}}
@@ -375,7 +385,50 @@ async function route(){
   if(d){await openDeceased(+d,false);return}
   show('home');
 }
-(async()=>{await loadCems();route()})();
+// ---------- שמירה לשימוש בלי קליטה ----------
+const LOCAL={};
+async function localData(cid){
+  if(LOCAL[cid])return LOCAL[cid];
+  try{const c=await caches.open('gm-data');const r=await c.match('/offline/'+cid+'.json');if(r)return LOCAL[cid]=await r.json()}catch{}
+  return null;
+}
+function localSearch(all,words){
+  const res=all.filter(r=>words.every(w=>{
+    if(/^\d{4}$/.test(w))return (r.death_date||'').startsWith(w);
+    const t=w.replace(/["']/g,'');return [r.last_name,r.first_name,r.alt_name,r.father_name,r.mother_name].some(f=>(f||'').includes(t))}));
+  return res.sort((a,b)=>(a.last_name||'').localeCompare(b.last_name||'','he')||(a.first_name||'').localeCompare(b.first_name||'','he')).slice(0,60);
+}
+function tileXY(lat,lng,z){const n=2**z,x=Math.floor((lng+180)/360*n),r=lat*Math.PI/180,y=Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n);return [x,y]}
+async function offStatus(){
+  const t=store.get('off:'+cem?.id,0);
+  $('offTxt').textContent=t?`${cem.town} שמור בטלפון (${new Date(t).toLocaleDateString('he-IL')}). עובד גם בלי קליטה.`:'שמרו את בית העלמין בטלפון כדי שיעבוד גם בלי קליטה.';
+  $('offBtn').textContent=t?'עדכון':'שמירה';
+}
+$('offBtn').onclick=async()=>{
+  if(!navigator.onLine){toast('צריך חיבור לאינטרנט כדי לשמור');return}
+  const b=$('offBtn'); b.disabled=true;
+  try{
+    // 1. רשימת הנפטרים
+    const all=[]; for(let from=0;;from+=1000){b.textContent=`נפטרים ${all.length}…`;
+      const {data,error}=await sb.from('deceased').select('id,cemetery_id,first_name,last_name,alt_name,father_name,mother_name,gush,plot,row_no,grave_no,death_date,death_date_hebrew').eq('cemetery_id',cem.id).order('id').range(from,from+999);
+      if(error)throw error; all.push(...data); if(data.length<1000)break}
+    const c=await caches.open('gm-data'); await c.put('/offline/'+cem.id+'.json',new Response(JSON.stringify(all),{headers:{'Content-Type':'application/json'}})); LOCAL[cem.id]=all;
+    // 2. חלקות ותצלום רחפן
+    await sb.from('plots').select('gush,plot,boundary').eq('cemetery_id',cem.id);
+    if(cem.overlay_url)await fetch(cem.overlay_url).catch(()=>{});
+    // 3. תמונות לוויין של האזור
+    let la=[],lo=[]; for(const p of plots){const r=p.boundary?.coordinates?.[0];if(r)for(const q of r){lo.push(q[0]);la.push(q[1])}}
+    if(!la.length&&cem.center_lat){la=[cem.center_lat-0.003,cem.center_lat+0.003];lo=[cem.center_lng-0.004,cem.center_lng+0.004]}
+    const m=0.002, N=Math.max(...la)+m,S=Math.min(...la)-m,W=Math.min(...lo)-m,E=Math.max(...lo)+m, urls=[];
+    for(let z=15;z<=18;z++){const [x0,y0]=tileXY(N,W,z),[x1,y1]=tileXY(S,E,z);for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)urls.push(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`)}
+    let done=0; const tc=await caches.open('gm-tiles');
+    await Promise.all(Array.from({length:6},async()=>{while(urls.length){const u=urls.pop();try{if(!await tc.match(u)){const r=await fetch(u);if(r.ok)await tc.put(u,r)}}catch{}b.textContent=`מפה ${++done}…`}}));
+    store.set('off:'+cem.id,Date.now()); toast('נשמר. האתר יעבוד גם בלי קליטה');
+  }catch(err){toast('השמירה לא הושלמה. נסו שוב כשהקליטה טובה.')}
+  b.disabled=false; offStatus();
+};
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+(async()=>{await loadCems();offStatus();route()})();
 </script>
 </body>
 </html>
