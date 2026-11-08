@@ -42,6 +42,7 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
   <input id="plot" list="plotList" style="width:84px" aria-label="חלקה" placeholder="חלקה">
   <datalist id="plotList"></datalist>
   <span id="demo" class="demo" hidden>מצב ניסיון</span>
+  <button class="small" id="addEd" hidden title="מינוי עורך נוסף">👤＋</button>
   <button class="small" id="logout" hidden>יציאה</button>
 </header>
 <div id="map"></div>
@@ -81,6 +82,15 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
   <input id="cId" placeholder="מזהה באנגלית (למשל sderot)" dir="ltr">
   <div style="font-size:13px;color:var(--mute);margin-bottom:8px">מרכז המפה יילקח מהמיקום הנוכחי שלך.</div>
   <div class="row"><button class="pri" id="cGo">הוסף</button><button id="cCancel">ביטול</button></div>
+</div></div>
+
+<div class="dlg" id="dEd"><div class="box">
+  <h3>מינוי עורך נוסף</h3>
+  <input id="eName" placeholder="שם">
+  <input id="eEmail" type="email" placeholder="אימייל" dir="ltr" autocomplete="off">
+  <input id="ePass" type="text" placeholder="סיסמה (לפחות 8 תווים)" dir="ltr" autocomplete="off">
+  <div id="eMsg" style="min-height:20px;font-size:14px;margin-bottom:6px"></div>
+  <div class="row"><button class="pri" id="eGo">מנה כעורך</button><button id="eCancel">סגור</button></div>
 </div></div>
 
 <div class="dlg" id="dAsk"><div class="box">
@@ -253,9 +263,24 @@ async function login(){
   user=data.user; await afterLogin();
 }
 async function afterLogin(){
-  const {data}=await sb.from('editors').select('user_id').eq('user_id',user.id).maybeSingle();
+  const {data}=await sb.from('editors').select('*').eq('user_id',user.id).maybeSingle();
   if(!data){$('dLogin').classList.add('show');$('lMsg').textContent='המשתמש לא מורשה לעריכה (חסר בטבלת editors).';return}
-  $('dLogin').classList.remove('show'); $('logout').hidden=false; await loadCems();
+  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('addEd').hidden=!data.is_admin; await loadCems();
+}
+async function addEditor(){
+  const name=$('eName').value.trim(), email=$('eEmail').value.trim().toLowerCase(), pass=$('ePass').value;
+  const say=(t,c)=>{$('eMsg').textContent=t;$('eMsg').style.color=`var(--${c})`};
+  if(!name||!email||pass.length<8){say('צריך שם, אימייל וסיסמה של 8 תווים לפחות.','bad');return}
+  $('eGo').disabled=true; say('יוצר משתמש…','mute');
+  // לקוח נפרד, כדי שהיצירה לא תנתק אותך
+  const tmp=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,storageKey:'tmp-signup'}});
+  const {error:e1}=await tmp.auth.signUp({email,password:pass});
+  if(e1&&!/registered|exists/i.test(e1.message)){say('יצירת המשתמש נכשלה: '+e1.message,'bad');$('eGo').disabled=false;return}
+  const {data,error:e2}=await sb.rpc('add_editor',{p_email:email,p_name:name});
+  $('eGo').disabled=false;
+  if(e2){say('המינוי נכשל: '+e2.message,'bad');return}
+  say(data==='existing'?`${name} כבר היה רשום — מונה כעורך. הסיסמה הקודמת שלו נשארת.`:`${name} מונה כעורך ✓ אפשר להיכנס עם האימייל והסיסמה.`,'ok');
+  $('eName').value=$('eEmail').value=$('ePass').value='';
 }
 
 // ---------- חיבור אירועים ----------
@@ -268,6 +293,8 @@ $('cem').onchange=onCemChange; $('plot').onchange=onPlotChange; $('gush').onchan
 $('newCem').onclick=()=>$('dCem').classList.add('show'); $('cCancel').onclick=()=>$('dCem').classList.remove('show'); $('cGo').onclick=addCem;
 $('lGo').onclick=login; $('lPass').onkeydown=e=>{if(e.key==='Enter')login()};
 $('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
+$('addEd').onclick=()=>{$('eMsg').textContent='';$('dEd').classList.add('show')};
+$('eCancel').onclick=()=>$('dEd').classList.remove('show'); $('eGo').onclick=addEditor;
 document.addEventListener('visibilitychange',async()=>{if(walking&&document.visibilityState==='visible'){try{wake=await navigator.wakeLock?.request('screen')}catch{}}});
 
 (async()=>{
