@@ -1,5 +1,5 @@
 // Grave Marker – עבודה בלי קליטה
-const V='gm-v3';
+const V='gm-v4';
 const SHELL=['/','/index.html','/manifest.webmanifest','/hebcal.js','/icons/icon-192.png','/icons/icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
@@ -18,7 +18,7 @@ self.addEventListener('fetch',e=>{
   const req=e.request; if(req.method!=='GET')return;
   const u=new URL(req.url);
   if(u.hostname==='he.wikisource.org')return e.respondWith(netFirst(req,'gm-data'));             // נוסח תהלים
-  if(u.hostname==='server.arcgisonline.com')return e.respondWith(cacheFirst(req,'gm-tiles'));        // תמונות לוויין
+  if(u.hostname==='tile.openstreetmap.org')return e.respondWith(cacheFirst(req,'gm-tiles'));         // מפת רחובות (רק אריחים שנצפו)
   if(u.pathname.startsWith('/overlays/')||u.pathname.startsWith('/icons/'))return e.respondWith(cacheFirst(req,'gm-tiles'));
   if(u.hostname.endsWith('.supabase.co')){                                                       // נתונים
     if(u.pathname.includes('/storage/'))return e.respondWith(cacheFirst(req,'gm-tiles'));

@@ -178,7 +178,10 @@ let cems=[], plots=[], pts=[], walking=false, tapping=false, watchId=null, lastF
 
 // ---------- מפה ----------
 const map = L.map('map',{zoomControl:false}).setView([31.3152,34.6103],18);
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:21,maxNativeZoom:18,attribution:'Esri'}).addTo(map);
+const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:21,maxNativeZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+// לוויין – לשימוש פנימי של עורכים בלבד (יישור תצלומים); לא מוצג לציבור
+const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:21,maxNativeZoom:18,attribution:'Esri'});
+L.control.layers({'מפה':osm,'לוויין (עורכים)':sat},null,{position:'bottomleft'}).addTo(map);
 L.control.zoom({position:'topleft'}).addTo(map);
 map.createPane('drone').style.zIndex=350;
 const plotLayer = L.layerGroup().addTo(map);
