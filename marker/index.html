@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>סימון חלקות</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#1d2330;--mute:#6b7280;--line:#d9dde3;--pri:#1f5fbf;--ok:#1a8a4a;--warn:#c47a00;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#14171c;--card:#1e232b;--ink:#e8eaee;--mute:#9aa3ae;--line:#323944}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,"Segoe UI",Arial,sans-serif}
+body{display:flex;flex-direction:column}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:8px 10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+header select,header input{font-size:16px;padding:7px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+header .grow{flex:1;min-width:110px}
+#map{flex:1;min-height:200px}
+#panel{background:var(--card);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom))}
+#stats{display:flex;gap:12px;font-size:14px;color:var(--mute);flex-wrap:wrap;margin-bottom:6px}
+#stats b{color:var(--ink)}
+#msg{font-size:14px;min-height:20px;margin-bottom:6px}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+button{font-size:16px;padding:11px 12px;border:0;border-radius:10px;background:var(--line);color:var(--ink);flex:1;min-width:80px;cursor:pointer}
+button.pri{background:var(--pri);color:#fff}button.ok{background:var(--ok);color:#fff}button.bad{background:var(--bad);color:#fff}
+button:disabled{opacity:.4}
+button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
+.on{outline:3px solid var(--warn)}
+.dlg{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;z-index:2000;padding:16px}
+.dlg.show{display:flex}
+.box{background:var(--card);border-radius:14px;padding:16px;width:100%;max-width:360px}
+.box h3{margin:0 0 10px}
+.box input{width:100%;font-size:16px;padding:9px;margin-bottom:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.lbl{background:none;border:0;box-shadow:none;font-weight:700;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;font-size:15px}
+.demo{background:var(--warn);color:#fff;font-size:13px;padding:3px 8px;border-radius:6px}
+</style>
+</head>
+<body>
+<header>
+  <select id="cem" class="grow" aria-label="בית עלמין"></select>
+  <button class="small" id="newCem" title="בית עלמין חדש">＋</button>
+  <input id="gush" value="1" style="width:56px" aria-label="גוש" placeholder="גוש">
+  <input id="plot" list="plotList" style="width:84px" aria-label="חלקה" placeholder="חלקה">
+  <datalist id="plotList"></datalist>
+  <span id="demo" class="demo" hidden>מצב ניסיון</span>
+  <button class="small" id="logout" hidden>יציאה</button>
+</header>
+<div id="map"></div>
+<div id="panel">
+  <div id="stats">
+    <span>נקודות: <b id="sPts">0</b></span>
+    <span>דיוק GPS: <b id="sAcc">—</b></span>
+    <span>היקף: <b id="sLen">0 מ'</b></span>
+    <span>שטח: <b id="sArea">0 מ"ר</b></span>
+    <span>סומנו: <b id="sDone">0</b></span>
+  </div>
+  <div id="msg">בחר חלקה ולחץ "התחל הליכה". אפשר גם לסמן פינות בהקשה על המפה.</div>
+  <div class="row">
+    <button class="pri" id="bWalk">▶ התחל הליכה</button>
+    <button id="bTap">✋ סימון ידני</button>
+    <button id="bUndo">↶ בטל נקודה</button>
+  </div>
+  <div class="row" style="margin-top:6px">
+    <button class="ok" id="bSave">✓ סיים ושמור</button>
+    <button id="bClear">נקה</button>
+    <button class="bad" id="bDel">מחק גבול</button>
+  </div>
+</div>
+
+<div class="dlg" id="dLogin"><div class="box">
+  <h3>כניסה לעורכים</h3>
+  <input id="lEmail" type="email" placeholder="אימייל" autocomplete="username">
+  <input id="lPass" type="password" placeholder="סיסמה" autocomplete="current-password">
+  <div id="lMsg" style="color:var(--bad);min-height:20px;font-size:14px"></div>
+  <button class="pri" id="lGo" style="width:100%">כניסה</button>
+</div></div>
+
+<div class="dlg" id="dCem"><div class="box">
+  <h3>בית עלמין חדש</h3>
+  <input id="cName" placeholder="שם בית העלמין">
+  <input id="cTown" placeholder="יישוב">
+  <input id="cId" placeholder="מזהה באנגלית (למשל sderot)" dir="ltr">
+  <div style="font-size:13px;color:var(--mute);margin-bottom:8px">מרכז המפה יילקח מהמיקום הנוכחי שלך.</div>
+  <div class="row"><button class="pri" id="cGo">הוסף</button><button id="cCancel">ביטול</button></div>
+</div></div>
+
+<div class="dlg" id="dAsk"><div class="box">
+  <h3 id="aTitle"></h3><div id="aText" style="margin-bottom:12px"></div>
+  <div class="row"><button class="pri" id="aYes">כן</button><button id="aNo">לא</button></div>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+// ===== הגדרות: הדבק כאן את הפרטים מ-Supabase (Settings > API) =====
+const SUPABASE_URL = "https://vqydrrhgklikhfdsgrwr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C";   // publishable / anon key
+// ====================================================================
+const MAX_ACC = 20, MIN_STEP = 2, SIMPLIFY = 0.8;   // מטרים
+
+const $ = id => document.getElementById(id);
+const DEMO = !SUPABASE_URL || !SUPABASE_KEY;
+const sb = DEMO ? null : supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const store = {get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+
+let cems=[], plots=[], pts=[], walking=false, tapping=false, watchId=null, lastFix=null, wake=null, user=null;
+
+// ---------- מפה ----------
+const map = L.map('map',{zoomControl:false}).setView([31.3036,34.6066],17);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:21,maxNativeZoom:19,attribution:'Esri'}).addTo(map);
+L.control.zoom({position:'topleft'}).addTo(map);
+const plotLayer = L.layerGroup().addTo(map);
+const draft = L.polygon([], {color:'#ffcc00',weight:3,fillOpacity:.15,dashArray:'6 4'}).addTo(map);
+const draftDots = L.layerGroup().addTo(map);
+const me = L.circleMarker([0,0],{radius:7,color:'#fff',weight:2,fillColor:'#1f8fff',fillOpacity:1});
+const meAcc = L.circle([0,0],{radius:1,color:'#1f8fff',weight:1,fillOpacity:.1});
+let followed=false;
+
+// ---------- גיאומטריה (מטרים מקומיים) ----------
+const R=6371000, rad=d=>d*Math.PI/180;
+function toXY(p,o){return [rad(p[1]-o[1])*R*Math.cos(rad(o[0])), rad(p[0]-o[0])*R]}
+function dist(a,b){const [x,y]=toXY(b,a);return Math.hypot(x,y)}
+function area(ps){if(ps.length<3)return 0;const o=ps[0],q=ps.map(p=>toXY(p,o));let s=0;for(let i=0;i<q.length;i++){const a=q[i],b=q[(i+1)%q.length];s+=a[0]*b[1]-b[0]*a[1]}return Math.abs(s/2)}
+function perim(ps){let s=0;for(let i=1;i<ps.length;i++)s+=dist(ps[i-1],ps[i]);return s}
+function simplify(ps,tol){
+  if(ps.length<4)return ps; const o=ps[0], q=ps.map(p=>toXY(p,o));
+  const keep=new Array(ps.length).fill(false); keep[0]=keep[ps.length-1]=true;
+  (function rdp(a,b){let m=-1,dm=0;const [x1,y1]=q[a],[x2,y2]=q[b],L2=Math.hypot(x2-x1,y2-y1)||1e-9;
+    for(let i=a+1;i<b;i++){const d=Math.abs((y2-y1)*q[i][0]-(x2-x1)*q[i][1]+x2*y1-y2*x1)/L2;if(d>dm){dm=d;m=i}}
+    if(dm>tol){keep[m]=true;rdp(a,m);rdp(m,b)}})(0,ps.length-1);
+  return ps.filter((_,i)=>keep[i]);
+}
+
+// ---------- ממשק ----------
+function msg(t,c){$('msg').textContent=t;$('msg').style.color=c?`var(--${c})`:''}
+function ask(title,text){return new Promise(r=>{$('aTitle').textContent=title;$('aText').textContent=text;$('dAsk').classList.add('show');
+  $('aYes').onclick=()=>{$('dAsk').classList.remove('show');r(true)};$('aNo').onclick=()=>{$('dAsk').classList.remove('show');r(false)}})}
+const key=()=>`draft:${$('cem').value}:${$('gush').value.trim()}:${$('plot').value.trim()}`;
+function current(){return plots.find(p=>p.gush===$('gush').value.trim()&&p.plot===$('plot').value.trim())}
+
+function drawDraft(){
+  draft.setLatLngs(pts); draftDots.clearLayers();
+  pts.forEach((p,i)=>L.circleMarker(p,{radius:i===pts.length-1?5:3,color:'#ffcc00',fillOpacity:1}).addTo(draftDots));
+  $('sPts').textContent=pts.length; $('sLen').textContent=Math.round(perim(pts))+" מ'";
+  $('sArea').textContent=Math.round(area(pts)).toLocaleString('he')+' מ"ר';
+  store.set(key(),pts);
+  $('bUndo').disabled=!pts.length; $('bSave').disabled=pts.length<3; $('bClear').disabled=!pts.length;
+}
+function drawPlots(){
+  plotLayer.clearLayers(); const sel=current();
+  plots.filter(p=>p.boundary).forEach(p=>{
+    const ll=p.boundary.coordinates[0].map(c=>[c[1],c[0]]);
+    const isSel=p===sel;
+    const poly=L.polygon(ll,{color:isSel?'#ff3b30':'#4cd964',weight:isSel?3:2,fillOpacity:isSel?.25:.12}).addTo(plotLayer);
+    poly.on('click',e=>{if(tapping){addPoint([e.latlng.lat,e.latlng.lng]);return} $('gush').value=p.gush;$('plot').value=p.plot;onPlotChange()});
+    L.marker(poly.getBounds().getCenter(),{icon:L.divIcon({className:'lbl',html:(p.gush!=='1'?p.gush+'/':'')+p.plot,iconSize:[40,20]}),interactive:false}).addTo(plotLayer);
+  });
+  $('sDone').textContent=`${plots.filter(p=>p.boundary).length}/${plots.length}`;
+  $('plotList').innerHTML=plots.map(p=>`<option value="${p.plot}">${p.boundary?'✓ מסומנת':'טרם סומנה'}${p.gush!=='1'?' · גוש '+p.gush:''}</option>`).join('');
+  $('bDel').disabled=!sel||!sel.boundary;
+}
+function onPlotChange(){ if(walking)stopWalk(); pts=store.get(key(),[]); drawDraft(); drawPlots();
+  const p=current(); if(!$('plot').value.trim()) msg('בחר חלקה.');
+  else if(p&&p.boundary) msg(`חלקה ${p.plot} כבר מסומנת. סימון חדש יחליף אותה.`,'warn');
+  else msg(`חלקה ${$('plot').value} — מוכן לסימון.`);
+}
+
+// ---------- GPS ----------
+function onFix(pos){
+  const c=[pos.coords.latitude,pos.coords.longitude], acc=pos.coords.accuracy; lastFix={c,acc};
+  me.setLatLng(c).addTo(map); meAcc.setLatLng(c).setRadius(acc).addTo(map);
+  $('sAcc').textContent=Math.round(acc)+" מ'"; $('sAcc').style.color=acc<=MAX_ACC?'var(--ok)':'var(--bad)';
+  if(!followed){map.setView(c,19);followed=true}
+  if(walking){
+    if(acc>MAX_ACC){msg(`דיוק חלש (${Math.round(acc)} מ') — חכה רגע במקום.`,'warn');return}
+    if(!pts.length||dist(pts[pts.length-1],c)>=MIN_STEP){pts.push(c);drawDraft();msg('מקליט… המשך ללכת לאורך גבול החלקה.','ok')}
+    map.panTo(c,{animate:true});
+  }
+}
+function startGps(){
+  if(!navigator.geolocation){msg('הדפדפן לא תומך במיקום.','bad');return}
+  watchId=navigator.geolocation.watchPosition(onFix,e=>msg('אין גישה למיקום: '+e.message+'. אשר הרשאת מיקום בדפדפן.','bad'),{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+}
+async function startWalk(){
+  if(!$('plot').value.trim()){msg('קודם בחר חלקה.','bad');return}
+  if(tapping)toggleTap();
+  walking=true; $('bWalk').textContent='⏸ השהה'; $('bWalk').classList.add('on');
+  try{wake=await navigator.wakeLock?.request('screen')}catch{}
+  if(lastFix)onFix({coords:{latitude:lastFix.c[0],longitude:lastFix.c[1],accuracy:lastFix.acc}});
+  msg('מקליט… לך לאורך גבול החלקה עד שתחזור לנקודת ההתחלה.','ok');
+}
+function stopWalk(){walking=false;$('bWalk').textContent=pts.length?'▶ המשך הליכה':'▶ התחל הליכה';$('bWalk').classList.remove('on');try{wake?.release()}catch{};wake=null}
+function toggleTap(){tapping=!tapping;$('bTap').classList.toggle('on',tapping);if(tapping){if(walking)stopWalk();msg('הקש על המפה בכל פינה של החלקה, לפי הסדר.')}else msg('סימון ידני כבוי.')}
+function addPoint(c){if(!$('plot').value.trim()){msg('קודם בחר חלקה.','bad');return}pts.push(c);drawDraft()}
+map.on('click',e=>{if(tapping)addPoint([e.latlng.lat,e.latlng.lng])});
+
+// ---------- נתונים ----------
+async function loadCems(){
+  if(DEMO){cems=store.get('demo:cems',[{id:'ofakim',name:'בית העלמין אופקים',town:'אופקים',center_lat:31.3036,center_lng:34.6066}])}
+  else{const {data,error}=await sb.from('cemeteries').select('*').order('name');if(error){msg('שגיאה בטעינה: '+error.message,'bad');return}cems=data}
+  $('cem').innerHTML=cems.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const last=store.get('lastCem'); if(cems.some(c=>c.id===last))$('cem').value=last;
+  await onCemChange();
+}
+async function loadPlots(){
+  const cid=$('cem').value;
+  if(DEMO)plots=store.get('demo:plots:'+cid,[]);
+  else{const {data,error}=await sb.from('plots').select('*').eq('cemetery_id',cid);if(error){msg('שגיאה: '+error.message,'bad');return}plots=data}
+  plots.sort((a,b)=>a.gush.localeCompare(b.gush)||parseInt(a.plot)-parseInt(b.plot)||a.plot.localeCompare(b.plot));
+  drawPlots();
+}
+async function onCemChange(){
+  store.set('lastCem',$('cem').value); const c=cems.find(x=>x.id===$('cem').value);
+  if(c&&c.center_lat&&!lastFix)map.setView([c.center_lat,c.center_lng],17);
+  await loadPlots(); onPlotChange();
+}
+async function save(){
+  if(pts.length<3)return;
+  const gush=$('gush').value.trim()||'1', plot=$('plot').value.trim(), cid=$('cem').value;
+  const ring=simplify(pts,SIMPLIFY), a=area(ring);
+  const ok=await ask(`לשמור את חלקה ${plot}?`,`${ring.length} נקודות, שטח כ-${Math.round(a).toLocaleString('he')} מ"ר.${current()?.boundary?' הגבול הקודם יוחלף.':''}`);
+  if(!ok)return;
+  stopWalk();
+  const coords=ring.map(p=>[+p[1].toFixed(7),+p[0].toFixed(7)]); coords.push(coords[0]);
+  const row={cemetery_id:cid,gush,plot,boundary:{type:'Polygon',coordinates:[coords]},method:tapping?'manual':'walk',points:ring.length,area_m2:Math.round(a),updated_at:new Date().toISOString()};
+  if(DEMO){const all=store.get('demo:plots:'+cid,[]);const i=all.findIndex(p=>p.gush===gush&&p.plot===plot);if(i>=0)all[i]={...all[i],...row};else all.push(row);store.set('demo:plots:'+cid,all)}
+  else{row.marked_by=user?.id;const {error}=await sb.from('plots').upsert(row,{onConflict:'cemetery_id,gush,plot'});
+    if(error){msg('השמירה נכשלה ('+error.message+'). הטיוטה שמורה בטלפון — נסה שוב.','bad');return}}
+  pts=[];store.set(key(),[]);drawDraft();await loadPlots();
+  msg(`חלקה ${plot} נשמרה ✓ בחר את החלקה הבאה.`,'ok'); $('plot').value='';
+}
+async function delPlot(){
+  const p=current(); if(!p||!p.boundary)return;
+  if(!await ask(`למחוק את הגבול של חלקה ${p.plot}?`,'החלקה תישאר ברשימה, רק הגבול יימחק.'))return;
+  if(DEMO){const all=store.get('demo:plots:'+p.cemetery_id,[]);const x=all.find(q=>q.gush===p.gush&&q.plot===p.plot);if(x)x.boundary=null;store.set('demo:plots:'+p.cemetery_id,all)}
+  else{const {error}=await sb.from('plots').update({boundary:null,points:null,area_m2:null}).eq('id',p.id);if(error){msg(error.message,'bad');return}}
+  await loadPlots();onPlotChange();
+}
+async function addCem(){
+  const name=$('cName').value.trim(),town=$('cTown').value.trim(),id=$('cId').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
+  if(!name||!town||!id){alertBox('צריך למלא את כל השדות.');return}
+  const c=map.getCenter(), row={id,name,town,center_lat:lastFix?lastFix.c[0]:c.lat,center_lng:lastFix?lastFix.c[1]:c.lng};
+  if(DEMO){cems.push(row);store.set('demo:cems',cems)}
+  else{const {error}=await sb.from('cemeteries').insert(row);if(error){alertBox(error.message);return}}
+  $('dCem').classList.remove('show'); store.set('lastCem',id); await loadCems();
+}
+function alertBox(t){$('cId').insertAdjacentHTML('afterend',`<div style="color:var(--bad);font-size:14px">${t}</div>`)}
+
+// ---------- כניסה ----------
+async function login(){
+  $('lMsg').textContent='';
+  const {data,error}=await sb.auth.signInWithPassword({email:$('lEmail').value.trim(),password:$('lPass').value});
+  if(error){$('lMsg').textContent='כניסה נכשלה: '+error.message;return}
+  user=data.user; await afterLogin();
+}
+async function afterLogin(){
+  const {data}=await sb.from('editors').select('user_id').eq('user_id',user.id).maybeSingle();
+  if(!data){$('dLogin').classList.add('show');$('lMsg').textContent='המשתמש לא מורשה לעריכה (חסר בטבלת editors).';return}
+  $('dLogin').classList.remove('show'); $('logout').hidden=false; await loadCems();
+}
+
+// ---------- חיבור אירועים ----------
+$('bWalk').onclick=()=>walking?stopWalk():startWalk();
+$('bTap').onclick=toggleTap;
+$('bUndo').onclick=()=>{pts.pop();drawDraft()};
+$('bClear').onclick=async()=>{if(await ask('לנקות את הסימון הנוכחי?','הנקודות שלא נשמרו יימחקו.')){stopWalk();pts=[];drawDraft()}};
+$('bSave').onclick=save; $('bDel').onclick=delPlot;
+$('cem').onchange=onCemChange; $('plot').onchange=onPlotChange; $('gush').onchange=onPlotChange;
+$('newCem').onclick=()=>$('dCem').classList.add('show'); $('cCancel').onclick=()=>$('dCem').classList.remove('show'); $('cGo').onclick=addCem;
+$('lGo').onclick=login; $('lPass').onkeydown=e=>{if(e.key==='Enter')login()};
+$('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
+document.addEventListener('visibilitychange',async()=>{if(walking&&document.visibilityState==='visible'){try{wake=await navigator.wakeLock?.request('screen')}catch{}}});
+
+(async()=>{
+  drawDraft(); startGps();
+  if(DEMO){$('demo').hidden=false;await loadCems();return}
+  const {data}=await sb.auth.getSession();
+  if(data.session){user=data.session.user;await afterLogin()}else $('dLogin').classList.add('show');
+})();
+</script>
+</body>
+</html>
