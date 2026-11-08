@@ -1,5 +1,5 @@
 // Grave Marker – עבודה בלי קליטה
-const V='gm-v4';
+const V='gm-v5';
 const SHELL=['/','/index.html','/manifest.webmanifest','/hebcal.js','/icons/icon-192.png','/icons/icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
