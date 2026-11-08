@@ -145,6 +145,7 @@ h3.grp{font-size:15px;color:var(--mute);margin:18px 2px 8px}
     <div class="acts">
       <button class="btn" id="bDrive">נסיעה לבית העלמין</button>
       <button class="btn sec" id="bShare">שיתוף</button>
+      <button class="btn sec" id="bTef">תפילון</button>
     </div>
     <button class="attach" id="bPhoto"><span style="font-size:22px">📷</span><span><b>צרף תמונה</b><small>צרף תמונת הקבר להנצחה</small></span></button>
     <input type="file" id="photoIn" accept="image/*" hidden>
@@ -400,6 +401,9 @@ $('photoIn').onchange=async e=>{
   }catch(err){toast('ההעלאה לא הצליחה. נסו שוב בעוד רגע.')}
 };
 
+// ---------- תפילון ----------
+$('bTef').onclick=()=>{const q=new URLSearchParams({n:cur.first_name||'',p:cur.mother_name||cur.father_name||'',t:cur.mother_name?'m':'f'});location.href='/tefilon/?'+q};
+
 // ---------- יום השנה ----------
 const DOW=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 let yzList=[];
@@ -493,6 +497,7 @@ $('offBtn').onclick=async()=>{
     // 2. חלקות ותצלום רחפן
     await sb.from('plots').select('gush,plot,boundary').eq('cemetery_id',cem.id);
     if(cem.overlay_url)await fetch(cem.overlay_url).catch(()=>{});
+    await fetch('/tefilon/').catch(()=>{}); await fetch('https://he.wikisource.org/w/api.php?action=parse&page='+encodeURIComponent('תהלים קיט/ניקוד')+'&prop=text&format=json&origin=*').catch(()=>{});
     // 3. תמונות לוויין של האזור
     let la=[],lo=[]; for(const p of plots){const r=p.boundary?.coordinates?.[0];if(r)for(const q of r){lo.push(q[0]);la.push(q[1])}}
     if(!la.length&&cem.center_lat){la=[cem.center_lat-0.003,cem.center_lat+0.003];lo=[cem.center_lng-0.004,cem.center_lng+0.004]}
