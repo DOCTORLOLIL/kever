@@ -34,6 +34,21 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
 .box h3{margin:0 0 10px}
 .box input{width:100%;font-size:16px;padding:9px;margin-bottom:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 .lbl{background:none;border:0;box-shadow:none;font-weight:700;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;font-size:15px}
+[hidden]{display:none!important}
+#ehome{position:fixed;inset:0;z-index:1500;background:var(--bg);display:flex;flex-direction:column;overflow:auto}
+#ehome.off{display:none}
+.etop{background:var(--card);border-bottom:1px solid var(--line);padding:14px 16px}
+.etop h1{font-size:19px;margin:0 0 10px}
+.etop select{width:100%;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.erow{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.linkb{flex:0 0 auto;min-width:0;background:none;padding:6px 0;color:var(--mute);font-size:14px;text-decoration:underline}
+.egrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;max-width:640px;width:100%;margin:0 auto}
+.t{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 12px;min-height:96px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;text-align:start;color:var(--ink);text-decoration:none;font-size:16px;white-space:normal}
+.t .ic{font-size:24px}.t small{color:var(--mute);font-size:13px}
+.t.big{grid-column:1/-1;background:var(--pri);color:#fff;border:0;min-height:110px}.t.big small{color:#dce6f7}
+.t.wide{grid-column:1/-1;min-height:56px;justify-content:center}
+.badge{background:var(--bad);color:#fff;border-radius:10px;padding:1px 8px;font-size:13px}
+.efoot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--line);color:var(--mute);font-size:14px}
 .demo{background:var(--warn);color:#fff;font-size:13px;padding:3px 8px;border-radius:6px}
 .ovbox{background:var(--card);color:var(--ink);border-radius:10px;padding:6px;display:flex;flex-direction:column;gap:5px;box-shadow:0 1px 5px #0006;min-width:120px}
 .ovbox button{flex:0 0 auto;min-width:0;padding:7px 8px;font-size:14px}
@@ -43,24 +58,33 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
 </style>
 </head>
 <body>
+<!-- מסך ראשי לעורכים -->
+<section id="ehome">
+  <div class="etop"><h1>עורכים · Grave Marker</h1>
+    <select id="cem" aria-label="בית עלמין"></select>
+    <div class="erow"><button class="linkb" id="newCem">＋ בית עלמין חדש</button><span id="demo" class="demo" hidden>מצב ניסיון</span></div>
+  </div>
+  <div class="egrid">
+    <button class="t big" id="tMap"><span class="ic">🗺️</span><b>מפת סימון חלקות</b><small id="tMapSub"></small></button>
+    <button class="t" id="bPh" hidden><span class="ic">📷</span><b>תמונות לאישור <span class="badge" id="phBadge" hidden></span></b></button>
+    <button class="t" id="bRep" hidden><span class="ic">📝</span><b>דיווחים <span class="badge" id="repBadge" hidden></span></b></button>
+    <button class="t" id="bCt" hidden><span class="ic">☎️</span><b>אנשי קשר</b></button>
+    <button class="t" id="addEd" hidden><span class="ic">👤</span><b>מינוי עורך</b><small>למנהלים בלבד</small></button>
+    <a class="t wide" href="/" target="_blank"><b>🌐 צפייה באתר הציבורי</b></a>
+  </div>
+  <div class="efoot"><span id="whoami"></span><button class="linkb" id="logout" hidden>יציאה</button></div>
+</section>
+
 <header>
   <div class="bar">
-    <select id="cem" class="grow" aria-label="בית עלמין"></select>
-    <button id="newCem" title="בית עלמין חדש" aria-label="בית עלמין חדש">＋</button>
-    <span id="demo" class="demo" hidden>מצב ניסיון</span>
-    <button id="logout" hidden>יציאה</button>
-  </div>
-  <div class="bar" style="flex-wrap:wrap">
-    <button id="bPh" hidden title="תמונות לאישור">תמונות</button>
-    <button id="bRep" hidden title="דיווחים מהציבור">דיווחים</button>
-    <button id="bCt" hidden title="אנשי קשר">אנשי קשר</button>
-    <button id="addEd" hidden title="מינוי עורך נוסף">＋ עורך</button>
+    <button id="toMenu">→ תפריט</button>
+    <b id="cemName" class="grow" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></b>
   </div>
   <div class="bar">
     <span class="tag">גוש</span>
     <input id="gush" value="1" style="width:48px;flex:0 0 48px;text-align:center" aria-label="גוש">
     <span class="tag">חלקה</span>
-    <input id="plot" class="grow" list="plotList" aria-label="חלקה" placeholder="בחר או הקלד">
+    <input id="plot" class="grow" list="plotList" aria-label="חלקה" placeholder="בחרו או הקלידו">
     <datalist id="plotList"></datalist>
   </div>
 </header>
@@ -275,6 +299,7 @@ function drawPlots(){
     L.marker(poly.getBounds().getCenter(),{icon:L.divIcon({className:'lbl',html:(p.gush!=='1'?p.gush+'/':'')+p.plot,iconSize:[40,20]}),interactive:false}).addTo(plotLayer);
   });
   $('sDone').textContent=`${plots.filter(p=>p.boundary).length}/${plots.length}`;
+  $('tMapSub').textContent=plots.length?`${plots.filter(p=>p.boundary).length} מתוך ${plots.length} חלקות סומנו`:'';
   $('plotList').innerHTML=plots.map(p=>`<option value="${p.plot}">${p.boundary?'✓ מסומנת':'טרם סומנה'}${p.gush!=='1'?' · גוש '+p.gush:''}</option>`).join('');
   $('bDel').disabled=!sel||!sel.boundary;
 }
@@ -329,7 +354,7 @@ async function loadPlots(){
   drawPlots();
 }
 async function onCemChange(){
-  store.set('lastCem',$('cem').value); const c=cems.find(x=>x.id===$('cem').value);
+  store.set('lastCem',$('cem').value); const c=cems.find(x=>x.id===$('cem').value); $('cemName').textContent=c?.name||'';
   if(c&&c.center_lat&&!lastFix)map.setView([c.center_lat,c.center_lng],18);
   if(aligning)ovAlignMode(false); ovSetup(c);
   await loadPlots(); onPlotChange();
@@ -376,7 +401,7 @@ async function login(){
 async function afterLogin(){
   const {data}=await sb.from('editors').select('*').eq('user_id',user.id).maybeSingle();
   if(!data){$('dLogin').classList.add('show');$('lMsg').textContent='המשתמש לא מורשה לעריכה (חסר בטבלת editors).';return}
-  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; repCount(); await loadCems();
+  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; repCount(); await loadCems();
 }
 async function addEditor(){
   const name=$('eName').value.trim(), email=$('eEmail').value.trim().toLowerCase(), pass=$('ePass').value;
@@ -401,10 +426,12 @@ $('bUndo').onclick=()=>{pts.pop();drawDraft()};
 $('bClear').onclick=async()=>{if(await ask('לנקות את הסימון הנוכחי?','הנקודות שלא נשמרו יימחקו.')){stopWalk();pts=[];drawDraft()}};
 $('bSave').onclick=save; $('bDel').onclick=delPlot;
 $('cem').onchange=onCemChange; $('plot').onchange=onPlotChange; $('gush').onchange=onPlotChange;
+$('tMap').onclick=()=>{$('ehome').classList.add('off');map.invalidateSize()};
+$('toMenu').onclick=()=>{if(walking)stopWalk();$('ehome').classList.remove('off');if(!DEMO&&user){phCount();repCount()}};
 $('newCem').onclick=()=>$('dCem').classList.add('show'); $('cCancel').onclick=()=>$('dCem').classList.remove('show'); $('cGo').onclick=addCem;
 $('lGo').onclick=login; $('lPass').onkeydown=e=>{if(e.key==='Enter')login()};
 $('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
-async function phCount(){const {count}=await sb.from('grave_photos').select('id',{count:'exact',head:true}).eq('status','pending');$('bPh').textContent=count?`תמונות (${count})`:'תמונות'}
+async function phCount(){const {count}=await sb.from('grave_photos').select('id',{count:'exact',head:true}).eq('status','pending');$('phBadge').textContent=count||'';$('phBadge').hidden=!count}
 async function phOpen(){
   $('dPh').classList.add('show'); $('phList').textContent='טוען…';
   const {data,error}=await sb.from('grave_photos').select('id,path,deceased(first_name,last_name,plot,row_no,grave_no)').eq('status','pending').order('created_at').limit(30);
@@ -423,7 +450,7 @@ function alertMsg(el,t){el.insertAdjacentHTML('beforeend',`<div style="color:var
 $('bPh').onclick=phOpen;
 // דיווחים
 const KIND={error:'פרט שגוי',damage:'מצבה פגועה',other:'אחר'};
-async function repCount(){const {count}=await sb.from('reports').select('id',{count:'exact',head:true}).eq('status','new');$('bRep').textContent=count?`דיווחים (${count})`:'דיווחים'}
+async function repCount(){const {count}=await sb.from('reports').select('id',{count:'exact',head:true}).eq('status','new');$('repBadge').textContent=count||'';$('repBadge').hidden=!count}
 async function repOpen(){$('dRep').classList.add('show');$('repList').textContent='טוען…';
   const {data,error}=await sb.from('reports').select('id,kind,message,contact,created_at,deceased(first_name,last_name,plot,row_no,grave_no)').eq('status','new').order('created_at').limit(50);
   if(error){$('repList').textContent='לא ניתן לטעון (האם הורץ contacts_reports.sql?)';return}
