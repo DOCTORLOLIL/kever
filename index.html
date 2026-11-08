@@ -62,6 +62,9 @@ footer a{color:var(--mute)}
 .back{position:absolute;top:calc(12px + env(safe-area-inset-top));inset-inline-start:12px;z-index:600;border:0;border-radius:50%;width:44px;height:44px;background:var(--card);box-shadow:0 1px 6px #0004;font-size:22px;cursor:pointer}
 .lbl{background:none;border:0;box-shadow:none;font-weight:700;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;font-size:13px;text-align:center}
 .me{background:#1f8fff;border:3px solid #fff;border-radius:50%;box-shadow:0 0 6px #0008}
+.yz{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0}
+.yz small{display:block;color:var(--mute);font-size:12px}.yz b{display:block;font-size:16px}.yz span{color:var(--mute);font-size:13px}
+.yz .btn{padding:8px 12px;font-size:14px;flex:0 0 auto}
 .photos{display:flex;gap:8px;overflow-x:auto;margin:8px 0}
 .photos img{height:84px;border-radius:10px;cursor:pointer}
 .attach{display:flex;align-items:center;gap:10px;border:1px dashed var(--line);border-radius:12px;padding:8px 12px;margin-top:10px;cursor:pointer;background:none;width:100%;text-align:start}
@@ -121,6 +124,7 @@ footer a{color:var(--mute)}
       <div><small>שורה</small><b id="dRow">—</b></div>
       <div><small>קבר</small><b id="dGrave">—</b></div>
     </div>
+    <div class="yz" id="yz"><div><small>יום השנה הבא</small><b id="yzDate"></b><span id="yzSub"></span></div><button class="btn sec" id="bCal">הוספה ליומן</button></div>
     <div class="photos" id="photos"></div>
     <div class="ask hide" id="askLoc">
       <div><b>עומדים ממש ליד הקבר?</b> שמרו את המיקום המדויק שלו, כדי שהבאים אחריכם יגיעו ישר אליו.</div>
@@ -139,6 +143,7 @@ footer a{color:var(--mute)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/lite.umd.js"></script>
+<script src="/hebcal.js"></script>
 <script>
 const SUPABASE_URL="https://vqydrrhgklikhfdsgrwr.supabase.co", SUPABASE_KEY="sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false}});
@@ -243,7 +248,7 @@ async function openDeceased(id,push){
   $('dPlot').textContent=data.plot||'—'; $('dRow').textContent=data.row_no||'—'; $('dGrave').textContent=data.grave_no||'—';
   document.title=`${fullName(data)} – איתור קברים`;
   show('detail'); map.invalidateSize(); drawMap(data); $('askLoc').classList.add('hide'); $('photos').innerHTML='';
-  await loadEstimate(data); await loadGrave(id); loadPhotos(id); startGps(); updateNav();
+  showYahrzeit(data); await loadEstimate(data); await loadGrave(id); loadPhotos(id); startGps(); updateNav();
 }
 $('back').onclick=()=>{if(history.state?.d)history.back();else{history.replaceState(null,'',location.pathname);show('home')}};
 window.onpopstate=()=>route();
@@ -366,6 +371,28 @@ $('photoIn').onchange=async e=>{
     }
     toast(msg);
   }catch(err){toast('ההעלאה לא הצליחה. נסו שוב בעוד רגע.')}
+};
+
+// ---------- יום השנה ----------
+const DOW=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+let yzList=[];
+function showYahrzeit(r){
+  yzList=[]; $('yz').classList.add('hide'); if(!r.death_date||!window.HebCal)return;
+  const [y,m,d]=r.death_date.split('-').map(Number); yzList=HebCal.nextYahrzeits(new Date(y,m-1,d),5);
+  const z=yzList[0]; if(!z)return;
+  $('yzDate').textContent=HebCal.fmt(z);
+  $('yzSub').textContent=`יום ${DOW[z.date.getDay()]}, ${z.date.toLocaleDateString('he-IL')} · מתחיל בערב שלפני`;
+  $('yz').classList.remove('hide');
+}
+$('bCal').onclick=()=>{
+  if(!yzList.length)return; const p=n=>String(n).padStart(2,'0'), ymd=d=>`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`;
+  const name=fullName(cur), url=`${location.origin}/?c=${cem.id}&d=${cur.id}`;
+  const ev=yzList.map((z,i)=>{const end=new Date(z.date);end.setDate(end.getDate()+1);return ['BEGIN:VEVENT',`UID:gm-${cur.id}-${z.y}@gravemarker.bulu.ltd`,`DTSTAMP:${ymd(new Date())}T000000Z`,
+    `DTSTART;VALUE=DATE:${ymd(z.date)}`,`DTEND;VALUE=DATE:${ymd(end)}`,`SUMMARY:יום השנה – ${name}`,
+    `DESCRIPTION:${HebCal.fmt(z)}. מתחיל בערב שלפני. ${locText(cur)}\\n${url}`,'BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY',`DESCRIPTION:מחר יום השנה – ${name}`,'END:VALARM','END:VEVENT'].join('\r\n')});
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Grave Marker//HE','CALSCALE:GREGORIAN',...ev,'END:VCALENDAR'].join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'})); a.download=`יום-השנה-${name}.ics`; a.click();
+  toast('נפתח קובץ יומן ל-5 השנים הבאות');
 };
 
 // ---------- פעולות ----------

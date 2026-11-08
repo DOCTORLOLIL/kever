@@ -1,6 +1,6 @@
 // Grave Marker – עבודה בלי קליטה
-const V='gm-v1';
-const SHELL=['/','/index.html','/manifest.webmanifest','/icons/icon-192.png','/icons/icon-512.png',
+const V='gm-v2';
+const SHELL=['/','/index.html','/manifest.webmanifest','/hebcal.js','/icons/icon-192.png','/icons/icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js',
