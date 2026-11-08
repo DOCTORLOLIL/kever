@@ -136,7 +136,7 @@ map.createPane('drone').style.zIndex=350;
 const plotLayer = L.layerGroup().addTo(map);
 
 // ---------- תצלום רחפן מעל המפה ----------
-const OV_DEFAULT={ofakim:{url:'../overlays/ofakim-2026.jpg',corners:[[31.31206,34.60824],[31.31834,34.60824],[31.31206,34.61238]]}};
+const OV_DEFAULT={ofakim:{url:'../overlays/ofakim-2026.jpg',corners:[[31.3156051,34.6061477],[31.3165235,34.61048],[31.3135235,34.6067528]]}};
 const Ov=L.Layer.extend({
   initialize(url,c){this.url=url;this.c=c.map(p=>L.latLng(p))},
   onAdd(m){this.img=L.DomUtil.create('img','leaflet-zoom-hide');this.img.src=this.url;
@@ -160,7 +160,7 @@ ovCtl.onAdd=()=>{const d=L.DomUtil.create('div','ovbox');L.DomEvent.disableClick
 function ovSetup(c){
   if(ov){map.removeLayer(ov);ov=null}
   const def=OV_DEFAULT[c?.id]; const url=c?.overlay_url||def?.url;
-  ovCorners=store.get('ovC:'+c?.id,null)||c?.overlay_corners||def?.corners;
+  ovCorners=store.get('ovC2:'+c?.id,null)||c?.overlay_corners||def?.corners;
   $('ovTog').parentElement.style.display=url&&ovCorners?'':'none';
   if(!url||!ovCorners)return;
   ov=new Ov(url,ovCorners); if(ovOn)ov.addTo(map);
@@ -188,7 +188,7 @@ function ovAlignMode(on){aligning=on;$('ovAl').style.display=on?'flex':'none';$(
   ovHandles()}
 async function ovSaveAlign(){
   const c=cems.find(x=>x.id===$('cem').value); const r=ovCorners.map(p=>[+p[0].toFixed(7),+p[1].toFixed(7)]);
-  store.set('ovC:'+c.id,r); if(c)c.overlay_corners=r;
+  store.set('ovC2:'+c.id,r); if(c)c.overlay_corners=r;
   if(!DEMO){const {error}=await sb.from('cemeteries').update({overlay_corners:r}).eq('id',c.id);
     if(error){msg('היישור נשמר בטלפון בלבד ('+error.message+').','warn');ovAlignMode(false);return}}
   msg('יישור התמונה נשמר ✓','ok'); ovAlignMode(false);
