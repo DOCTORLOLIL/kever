@@ -56,6 +56,20 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
 .ovbox input[type=range]{width:110px}
 .hdl{background:#ff3b30;border:3px solid #fff;border-radius:50%;box-shadow:0 0 4px #000}
 .hdl.mv{background:#1f8fff}
+#dRev .box,#dImp .box{max-width:720px;max-height:90vh;overflow:auto}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.chips button{flex:0 0 auto;min-width:0;padding:6px 10px;font-size:13px;border-radius:16px}
+.chips button.sel{background:var(--pri);color:#fff}
+.rv{border:1px solid var(--line);border-radius:10px;padding:8px}
+.rv .note{font-size:13px;color:var(--warn);margin-bottom:6px}
+.rv .g{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.rv .g label{font-size:12px;color:var(--mute);display:flex;flex-direction:column}
+.rv input,#dImp select,#dImp input[type=text]{font-size:15px;padding:6px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);width:100%;min-width:0}
+@media (max-width:520px){.rv .g{grid-template-columns:repeat(2,1fr)}}
+.map2{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;margin:8px 0}
+.prev{width:100%;border-collapse:collapse;font-size:13px}.prev td,.prev th{border:1px solid var(--line);padding:3px 5px;text-align:start}
+.prev tr.bad td{background:#c0392b22}
+.step{font-size:13px;color:var(--mute);margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -69,6 +83,8 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
     <button class="t big" id="tMap"><span class="ic">🗺️</span><b>מפת סימון חלקות</b><small id="tMapSub"></small></button>
     <button class="t" id="bPh" hidden><span class="ic">📷</span><b>תמונות לאישור <span class="badge" id="phBadge" hidden></span></b></button>
     <button class="t" id="bRep" hidden><span class="ic">📝</span><b>דיווחים <span class="badge" id="repBadge" hidden></span></b></button>
+    <button class="t" id="bRev" hidden><span class="ic">🔎</span><b>רשומות לבדיקה <span class="badge" id="revBadge" hidden></span></b><small>חסרים ושגיאות מהרשימה</small></button>
+    <button class="t" id="bImp" hidden><span class="ic">📥</span><b>ייבוא רשימת נפטרים</b><small>מקובץ Excel או CSV</small></button>
     <button class="t" id="bCt" hidden><span class="ic">☎️</span><b>אנשי קשר</b></button>
     <button class="t" id="addEd" hidden><span class="ic">👤</span><b>מינוי עורך</b><small>למנהלים בלבד</small></button>
     <a class="t wide" href="/" target="_blank"><b>🌐 צפייה באתר הציבורי</b></a>
@@ -156,6 +172,38 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
   <div class="row"><button class="pri" id="ctAdd">הוספה</button><button id="ctClose">סגירה</button></div>
 </div></div>
 
+<div class="dlg" id="dRev"><div class="box">
+  <h3>רשומות לבדיקה <span id="revN" style="font-weight:400;color:var(--mute);font-size:15px"></span></h3>
+  <div class="chips" id="revChips"></div>
+  <input id="revQ" placeholder="חיפוש לפי שם" style="width:100%;font-size:15px;padding:8px;margin-bottom:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
+  <div id="revList" style="display:flex;flex-direction:column;gap:10px"></div>
+  <div class="row" style="margin-top:10px"><button id="revMore" hidden>עוד</button><button id="revClose">סגירה</button></div>
+</div></div>
+
+<div class="dlg" id="dImp"><div class="box">
+  <h3>ייבוא רשימת נפטרים – <span id="impCem"></span></h3>
+  <div id="imp1">
+    <div class="step">שלב 1 מתוך 3 · בחירת קובץ</div>
+    <p style="margin:0 0 8px">קובץ Excel או CSV עם שורת כותרות (שם משפחה, שם פרטי, חלקה, שורה, קבר, תאריך פטירה…).</p>
+    <input type="file" id="impFile" accept=".xlsx,.xls,.csv,.ods" style="width:100%;margin-bottom:8px">
+    <div id="impMsg1" style="min-height:20px;font-size:14px"></div>
+  </div>
+  <div id="imp2" hidden>
+    <div class="step">שלב 2 מתוך 3 · התאמת עמודות</div>
+    <div id="impInfo" style="font-size:14px"></div>
+    <div class="map2" id="impMap"></div>
+    <div class="row"><button class="pri" id="impCheck">בדיקה ותצוגה מקדימה</button><button id="impBack1">קובץ אחר</button></div>
+  </div>
+  <div id="imp3" hidden>
+    <div class="step">שלב 3 מתוך 3 · בדיקה וטעינה</div>
+    <div id="impSum" style="font-size:14px;margin-bottom:8px"></div>
+    <div style="overflow:auto;max-height:40vh"><table class="prev" id="impPrev"></table></div>
+    <div id="impMsg3" style="min-height:20px;font-size:14px;margin:8px 0"></div>
+    <div class="row"><button class="ok" id="impGo">טעינה למערכת</button><button id="impBack2">חזרה להתאמה</button></div>
+  </div>
+  <button id="impClose" style="width:100%;margin-top:10px">סגירה</button>
+</div></div>
+
 <div class="dlg" id="dAsk"><div class="box">
   <h3 id="aTitle"></h3><div id="aText" style="margin-bottom:12px"></div>
   <div class="row"><button class="pri" id="aYes">כן</button><button id="aNo">לא</button></div>
@@ -163,6 +211,7 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/hebcal.js"></script>
 <script>
 // ===== הגדרות: הדבק כאן את הפרטים מ-Supabase (Settings > API) =====
 const SUPABASE_URL = "https://vqydrrhgklikhfdsgrwr.supabase.co";
@@ -405,7 +454,7 @@ async function login(){
 async function afterLogin(){
   const {data}=await sb.from('editors').select('*').eq('user_id',user.id).maybeSingle();
   if(!data){$('dLogin').classList.add('show');$('lMsg').textContent='המשתמש לא מורשה לעריכה (חסר בטבלת editors).';return}
-  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; repCount(); await loadCems();
+  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; repCount(); revCount(); await loadCems();
 }
 async function addEditor(){
   const name=$('eName').value.trim(), email=$('eEmail').value.trim().toLowerCase(), pass=$('ePass').value;
@@ -431,7 +480,7 @@ $('bClear').onclick=async()=>{if(await ask('לנקות את הסימון הנו�
 $('bSave').onclick=save; $('bDel').onclick=delPlot;
 $('cem').onchange=onCemChange; $('plot').onchange=onPlotChange; $('gush').onchange=onPlotChange;
 $('tMap').onclick=()=>{$('ehome').classList.add('off');map.invalidateSize()};
-$('toMenu').onclick=()=>{if(walking)stopWalk();$('ehome').classList.remove('off');if(!DEMO&&user){phCount();repCount()}};
+$('toMenu').onclick=()=>{if(walking)stopWalk();$('ehome').classList.remove('off');if(!DEMO&&user){phCount();repCount();revCount()}};
 $('newCem').onclick=()=>$('dCem').classList.add('show'); $('cCancel').onclick=()=>$('dCem').classList.remove('show'); $('cGo').onclick=addCem;
 $('lGo').onclick=login; $('lPass').onkeydown=e=>{if(e.key==='Enter')login()};
 $('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
@@ -482,6 +531,176 @@ $('ctAdd').onclick=async()=>{const name=$('ctName').value.trim();if(!name)return
 $('bCt').onclick=()=>{$('dCt').classList.add('show');ctLoad()}; $('ctClose').onclick=()=>$('dCt').classList.remove('show'); $('phClose').onclick=()=>$('dPh').classList.remove('show');
 $('addEd').onclick=()=>{$('eMsg').textContent='';$('dEd').classList.add('show')};
 $('eCancel').onclick=()=>$('dEd').classList.remove('show'); $('eGo').onclick=addEditor;
+// ---------- רשומות לבדיקה ----------
+const escH=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const REV_KINDS=[['','הכל'],['חסר מיקום','חסר מיקום'],['חסר שם פרטי','חסר שם פרטי'],['עוד נפטר','כמה נפטרים באותו קבר'],['לא במפה','חלקה לא במפה'],['לא תקני','מספר לא תקני'],['תאריך','תאריך']];
+let revKind='', revFrom=0, revTimer=null;
+const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const hebOf=iso=>{if(!iso)return null;const [y,m,d]=iso.split('-').map(Number);try{return HebCal.fmt(HebCal.toHeb(new Date(y,m-1,d)))}catch{return null}};
+function revQuery(head){
+  let q=sb.from('deceased').select(head?'id':'id,first_name,last_name,father_name,mother_name,gush,plot,row_no,grave_no,death_date,notes',head?{count:'exact',head:true}:undefined)
+    .eq('cemetery_id',$('cem').value).not('notes','is',null).not('notes','like','✓%');
+  if(revKind)q=q.ilike('notes',`%${revKind}%`);
+  const w=$('revQ')?.value.trim(); if(!head&&w)q=q.or(`last_name.ilike.*${w}*,first_name.ilike.*${w}*`);
+  return q;
+}
+async function revCount(){if(DEMO)return;const k=revKind;revKind='';const {count}=await revQuery(true);revKind=k;$('revBadge').textContent=count||'';$('revBadge').hidden=!count}
+async function revOpen(){
+  $('dRev').classList.add('show');
+  $('revChips').innerHTML=REV_KINDS.map(([k,l])=>`<button data-k="${k}" class="${k===revKind?'sel':''}">${l}</button>`).join('');
+  revFrom=0; $('revList').textContent='טוען…'; await revLoad();
+}
+async function revLoad(){
+  const {data,error}=await revQuery(false).order('plot').order('row_no').order('grave_no').range(revFrom,revFrom+19);
+  if(error){$('revList').textContent='לא ניתן לטעון: '+error.message;return}
+  if(revFrom===0)$('revList').innerHTML='';
+  const {count}=await revQuery(true); $('revN').textContent=count?`(${count})`:'';
+  if(!data.length&&revFrom===0){$('revList').textContent='אין רשומות פתוחות בקטגוריה הזו 👍';$('revMore').hidden=true;return}
+  const F=[['last_name','משפחה'],['first_name','פרטי'],['father_name','אב'],['mother_name','אם'],['plot','חלקה'],['row_no','שורה'],['grave_no','קבר'],['death_date','תאריך פטירה']];
+  $('revList').insertAdjacentHTML('beforeend',data.map(r=>`<div class="rv" data-id="${r.id}" data-note="${escH(r.notes)}">
+    <div class="note">⚠ ${escH(r.notes)}</div>
+    <div class="g">${F.map(([k,l])=>`<label>${l}<input data-f="${k}" ${k==='death_date'?'type="date"':''} value="${escH(r[k])}"></label>`).join('')}</div>
+    ${/עוד נפטר/.test(r.notes)?`<div class="same" data-p="${escH(r.plot)}" data-r="${escH(r.row_no)}" data-g="${escH(r.grave_no)}" data-gush="${escH(r.gush)}" style="font-size:13px;color:var(--mute);margin-top:4px"></div>`:''}
+    <div class="row" style="margin-top:6px"><button class="small" data-a="save">שמירה</button><button class="ok small" data-a="done">✓ טופל</button><span class="m" style="font-size:13px;align-self:center"></span></div></div>`).join(''));
+  $('revMore').hidden=data.length<20; revFrom+=data.length;
+  // מי עוד רשום באותו קבר
+  for(const el of $('revList').querySelectorAll('.same:empty')){
+    const {data:o}=await sb.from('deceased').select('id,first_name,last_name,death_date').eq('cemetery_id',$('cem').value).eq('gush',el.dataset.gush||'1').eq('plot',el.dataset.p).eq('row_no',el.dataset.r).eq('grave_no',el.dataset.g);
+    const id=+el.closest('.rv').dataset.id; const others=(o||[]).filter(x=>x.id!==id);
+    el.textContent=others.length?'באותו קבר: '+others.map(x=>`${x.first_name||''} ${x.last_name||''}${x.death_date?' ('+x.death_date.slice(0,4)+')':''}`).join(', '):'אין כבר נפטר נוסף באותו קבר';
+  }
+}
+$('revList').onclick=async ev=>{
+  const b=ev.target.closest('button[data-a]'); if(!b)return; const it=b.closest('.rv'), m=it.querySelector('.m');
+  const row={}; it.querySelectorAll('input[data-f]').forEach(i=>{const v=i.value.trim().replace(/\s+/g,' ');row[i.dataset.f]=v||null});
+  row.death_date_hebrew=hebOf(row.death_date);
+  if(b.dataset.a==='done')row.notes='✓ '+it.dataset.note;
+  b.disabled=true; m.textContent='שומר…';
+  const {error}=await sb.from('deceased').update(row).eq('id',+it.dataset.id);
+  b.disabled=false;
+  if(error){m.textContent='השמירה נכשלה: '+error.message;m.style.color='var(--bad)';return}
+  if(b.dataset.a==='done'){it.remove();revCount();const n=parseInt($('revN').textContent.replace(/\D/g,''))-1;$('revN').textContent=n>0?`(${n})`:'';revFrom=Math.max(0,revFrom-1);
+    if(!$('revList').children.length)$('revList').textContent='אין רשומות פתוחות בקטגוריה הזו 👍'}
+  else{m.textContent='נשמר ✓';m.style.color='var(--ok)'}
+};
+$('revChips').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;revKind=b.dataset.k;revOpen()};
+$('revQ').oninput=()=>{clearTimeout(revTimer);revTimer=setTimeout(()=>{revFrom=0;$('revList').textContent='טוען…';revLoad()},350)};
+$('revMore').onclick=revLoad;
+$('bRev').onclick=revOpen; $('revClose').onclick=()=>{$('dRev').classList.remove('show');revCount()};
+
+// ---------- ייבוא רשימת נפטרים ----------
+const IMP_F=[
+  ['last_name','שם משפחה',['שם משפחה','משפחה','last']],
+  ['first_name','שם פרטי',['שם פרטי','פרטי','first']],
+  ['alt_name','שם נוסף / כינוי',['כינוי','שם נוסף','שם קודם','נעורים']],
+  ['father_name','שם האב',['שם האב','שם אב','אב','father']],
+  ['mother_name','שם האם',['שם האם','שם אם','אם','mother']],
+  ['gush','גוש',['גוש']],
+  ['plot','חלקה',['חלקה','plot']],
+  ['row_no','שורה',['שורה','row']],
+  ['grave_no','קבר',['מס קבר','מספר קבר','קבר','grave']],
+  ['death_date','תאריך פטירה',['תאריך פטירה לועזי','תאריך פטירה','ת. פטירה','תאריך','death']],
+  ['death_date_hebrew','תאריך עברי',['תאריך עברי','עברי']],
+  ['source_id','מזהה ברשימה המקורית',['מזהה','מס"ד','מסד','מספר רשומה','id']]];
+let imp={raw:[],txt:[],head:[],hr:0,map:{},rows:[]};
+const normH=s=>String(s??'').replace(/["'״׳.\-_]/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+function loadXlsx(){return window.XLSX?Promise.resolve():new Promise((ok,bad)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=ok;s.onerror=bad;document.head.appendChild(s)})}
+function impShow(n){[1,2,3].forEach(i=>$('imp'+i).hidden=i!==n)}
+function autoMap(head){
+  const used=new Set(), m={};
+  // קודם התאמות מדויקות, אחר כך חלקיות
+  for(const exact of [true,false])for(const [k,,syn] of IMP_F){if(m[k]!=null)continue;
+    for(const s of syn){const i=head.findIndex((h,j)=>!used.has(j)&&(exact?normH(h)===normH(s):normH(h).includes(normH(s))));
+      if(i>=0){m[k]=i;used.add(i);break}}}
+  return m;
+}
+$('impFile').onchange=async e=>{
+  const f=e.target.files[0]; if(!f)return; $('impMsg1').textContent='קורא את הקובץ…';
+  try{
+    await loadXlsx();
+    const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true,codepage:65001});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    imp.raw=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+    imp.txt=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+    // שורת הכותרות: השורה הראשונה (מתוך 15) שיש בה הכי הרבה התאמות
+    let best=0,hr=0; imp.txt.slice(0,15).forEach((r,i)=>{const n=Object.keys(autoMap(r)).length;if(n>best){best=n;hr=i}});
+    if(best<2)throw new Error('לא נמצאה שורת כותרות (למשל "שם משפחה", "חלקה")');
+    imp.hr=hr; imp.head=imp.txt[hr].map(String); imp.map=autoMap(imp.head);
+    $('impInfo').textContent=`${f.name} · ${imp.txt.length-hr-1} שורות. בדקו שכל שדה מותאם לעמודה הנכונה:`;
+    const opts=`<option value="">— אין —</option>`+imp.head.map((h,i)=>`<option value="${i}">${escH(h||'עמודה '+(i+1))}</option>`).join('');
+    $('impMap').innerHTML=IMP_F.map(([k,l])=>`<span>${l}</span><select data-k="${k}">${opts}</select>`).join('');
+    $('impMap').querySelectorAll('select').forEach(s=>{const v=imp.map[s.dataset.k];if(v!=null)s.value=v});
+    $('impMsg1').textContent=''; impShow(2);
+  }catch(err){$('impMsg1').textContent='לא הצלחנו לקרוא את הקובץ: '+(err.message||err);$('impMsg1').style.color='var(--bad)'}
+};
+function cleanName(v){let s=String(v??'').replace(/[‎‏]/g,'').replace(/\s+/g,' ').trim().replace(/^[-–"',.]+|[-–"',.]+$/g,'').trim();
+  return !s||/^(0|-|לא ידוע|ללא|null)$/i.test(s)?null:s}
+function cleanNum(v){let s=String(v??'').trim();if(!s||s==='0'||s==='-')return null;if(/^\d+\.0+$/.test(s))s=s.replace(/\.0+$/,'');return s}
+function parseDate(raw,txt){
+  let d=null;
+  if(raw instanceof Date&&!isNaN(raw)){d=new Date(raw.getTime()+12*3600e3)}
+  else if(typeof raw==='number'&&raw>1000&&raw<80000){d=new Date(Math.round((raw-25569)*864e5));d=new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())}
+  else{const s=String(txt||raw||'').trim();let m;
+    if(m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/))d=new Date(+m[1],m[2]-1,+m[3]);
+    else if(m=s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/)){let y=+m[3];if(y<100)y+=y>30?1900:2000;d=new Date(y,m[2]-1,+m[1]);
+      if(d.getMonth()!==m[2]-1)d=null}
+    else if(!s)return {v:null};
+    else return {v:null,bad:true}}
+  if(!d||isNaN(d))return {v:null,bad:true};
+  const y=d.getFullYear(); if(y<1900||d>new Date())return {v:null,bad:true};
+  return {v:ymd(d)};
+}
+$('impCheck').onclick=async()=>{
+  const m={}; $('impMap').querySelectorAll('select').forEach(s=>{if(s.value!=='')m[s.dataset.k]=+s.value});
+  if(m.last_name==null&&m.first_name==null){alertBox('צריך לפחות עמודת שם משפחה או שם פרטי.');return}
+  imp.map=m; const rows=[]; let empty=0;
+  const cem=$('cem').value;
+  for(let i=imp.hr+1;i<imp.txt.length;i++){
+    const T=imp.txt[i], R=imp.raw[i]||[], g=k=>m[k]==null?'':T[m[k]];
+    const r={cemetery_id:cem,last_name:cleanName(g('last_name')),first_name:cleanName(g('first_name')),alt_name:cleanName(g('alt_name')),
+      father_name:cleanName(g('father_name')),mother_name:cleanName(g('mother_name')),gush:cleanNum(g('gush'))||'1',
+      plot:cleanNum(g('plot')),row_no:cleanNum(g('row_no')),grave_no:cleanNum(g('grave_no')),source_id:cleanNum(g('source_id'))||String(i+1)};
+    if(!r.last_name&&!r.first_name){empty++;continue}
+    const issues=[];
+    if(!r.first_name)issues.push('חסר שם פרטי');
+    if(!r.plot||!r.row_no||!r.grave_no)issues.push('חסר מיקום (חלקה/שורה/קבר)');
+    else if(!/^\d+$/.test(r.row_no)||!/^\d+$/.test(r.grave_no))issues.push('מספר שורה/קבר לא תקני');
+    if(m.death_date!=null){const d=parseDate(R[m.death_date],T[m.death_date]);r.death_date=d.v;if(d.bad)issues.push('תאריך פטירה לא תקין ('+String(T[m.death_date]).trim()+')')}
+    r.death_date_hebrew=hebOf(r.death_date)||(m.death_date_hebrew!=null?cleanName(g('death_date_hebrew')):null);
+    r._i=issues; rows.push(r);
+  }
+  // כמה נפטרים באותו קבר
+  const key=r=>r.plot&&r.row_no&&r.grave_no?[r.gush,r.plot,r.row_no,r.grave_no].join('|'):null, cnt={};
+  rows.forEach(r=>{const k=key(r);if(k)cnt[k]=(cnt[k]||0)+1});
+  rows.forEach(r=>{const k=key(r);if(k&&cnt[k]>1)r._i.push('עוד נפטר רשום באותו קבר');r.notes=r._i.length?r._i.join(', '):null});
+  imp.rows=rows;
+  const by={}; rows.forEach(r=>r._i.forEach(x=>{const k=x.replace(/ \(.*/,'');by[k]=(by[k]||0)+1}));
+  const plotsN=new Set(rows.filter(r=>r.plot).map(r=>r.gush+'/'+r.plot)).size;
+  let exist=0; if(!DEMO){const {count}=await sb.from('deceased').select('id',{count:'exact',head:true}).eq('cemetery_id',cem);exist=count||0}
+  $('impSum').innerHTML=`<b>${rows.length.toLocaleString('he')}</b> נפטרים · <b>${plotsN}</b> חלקות`+(empty?` · ${empty} שורות ריקות ידולגו`:'')+
+    `<br>${rows.filter(r=>r._i.length).length.toLocaleString('he')} רשומות עם הערה (יופיעו ב"רשומות לבדיקה"): `+(Object.entries(by).map(([k,v])=>`${escH(k)} – ${v}`).join(' · ')||'אין')+
+    (exist?`<br><b style="color:var(--warn)">בבית העלמין הזה כבר יש ${exist.toLocaleString('he')} רשומות. הטעינה תוסיף עליהן.</b>`:'');
+  const C=[['last_name','משפחה'],['first_name','פרטי'],['father_name','אב'],['mother_name','אם'],['plot','חלקה'],['row_no','שורה'],['grave_no','קבר'],['death_date','פטירה'],['death_date_hebrew','עברי'],['notes','הערה']];
+  const show=[...rows.filter(r=>r._i.length).slice(0,15),...rows.filter(r=>!r._i.length).slice(0,15)];
+  $('impPrev').innerHTML=`<tr>${C.map(c=>`<th>${c[1]}</th>`).join('')}</tr>`+show.map(r=>`<tr class="${r._i.length?'bad':''}">${C.map(c=>`<td>${escH(r[c[0]])}</td>`).join('')}</tr>`).join('');
+  $('impMsg3').textContent=''; $('impGo').disabled=!rows.length; impShow(3);
+};
+$('impGo').onclick=async()=>{
+  const rows=imp.rows.map(({_i,...r})=>r), cem=$('cem').value;
+  if(!await ask('לטעון את הרשימה?',`${rows.length.toLocaleString('he')} נפטרים ייטענו ל${cems.find(c=>c.id===cem)?.name||cem}.`))return;
+  $('impGo').disabled=true; const say=t=>$('impMsg3').textContent=t;
+  try{
+    for(let i=0;i<rows.length;i+=500){say(`טוען… ${Math.min(i+500,rows.length).toLocaleString('he')} מתוך ${rows.length.toLocaleString('he')}`);
+      const {error}=await sb.from('deceased').insert(rows.slice(i,i+500));if(error)throw new Error(`בשורות ${i+1}–${i+500}: ${error.message}`)}
+    const pl=[...new Map(rows.filter(r=>r.plot).map(r=>[r.gush+'/'+r.plot,{cemetery_id:cem,gush:r.gush,plot:r.plot}])).values()];
+    if(pl.length){const {error}=await sb.from('plots').upsert(pl,{onConflict:'cemetery_id,gush,plot',ignoreDuplicates:true});if(error)throw new Error('רשימת החלקות: '+error.message)}
+    say(`✓ נטענו ${rows.length.toLocaleString('he')} נפטרים ו-${pl.length} חלקות. עכשיו אפשר לסמן את החלקות במפה.`);$('impMsg3').style.color='var(--ok)';
+    await loadPlots(); revCount();
+  }catch(err){say('הטעינה נעצרה '+err.message+'. מה שנטען עד כאן נשמר.');$('impMsg3').style.color='var(--bad)';$('impGo').disabled=false}
+};
+$('bImp').onclick=()=>{$('impCem').textContent=cems.find(c=>c.id===$('cem').value)?.name||'';$('impFile').value='';$('impMsg1').textContent='';$('impMsg1').style.color='';$('impMsg3').style.color='';impShow(1);$('dImp').classList.add('show')};
+$('impBack1').onclick=()=>{$('impFile').value='';impShow(1)}; $('impBack2').onclick=()=>impShow(2);
+$('impClose').onclick=()=>$('dImp').classList.remove('show');
 document.addEventListener('visibilitychange',async()=>{if(walking&&document.visibilityState==='visible'){try{wake=await navigator.wakeLock?.request('screen')}catch{}}});
 
 (async()=>{
