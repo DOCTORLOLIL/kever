@@ -618,7 +618,9 @@ $('impFile').onchange=async e=>{
   const f=e.target.files[0]; if(!f)return; $('impMsg1').textContent='קורא את הקובץ…';
   try{
     await loadXlsx();
-    const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true,codepage:65001});
+    // ב-CSV התאריכים נקראים כטקסט (יום/חודש/שנה, כמו בישראל)
+    const csv=/\.csv$/i.test(f.name)||/csv|text/.test(f.type);
+    const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:!csv,raw:csv,codepage:65001});
     const ws=wb.Sheets[wb.SheetNames[0]];
     imp.raw=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
     imp.txt=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
