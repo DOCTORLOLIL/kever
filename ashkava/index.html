@@ -73,7 +73,7 @@ function render(sec){
   const lines=sec[gender+len];
   $('out').innerHTML=`<div class="card"><h2>${TITLES[gender+len]}</h2>`+lines.map(l=>{
     if(!/[֑-ׇ]/.test(l))return `<p class="n">${esc(l)}</p>`;        // הוראה ללא ניקוד
-    let h=esc(l).replace(/^[א-ת]{1,2} (?=\S)/,'');                              // מספר פסוק בתחילת השורה
+    let h=esc(l).replace(/^[\s\u00a0\u200e\u200f]*[א-ת]{1,2}[\s\u00a0\u2009\u200f]+(?=[\u05d0-\u05ea])/,'');                              // מספר פסוק בתחילת השורה
     h=h.replace('שם בֶּן שם האב',who).replace('שם בֶּן שם האם',who).replace('שם בַּת שם האם',who).replace('מָרַת (פלונית)','מָרַת '+who);
     h=h.replace(/\((אמן|עליו)\)/g,'<span class="amen">($1)</span>');
     return `<p class="t">${h}</p>`}).join('')+'</div>';
