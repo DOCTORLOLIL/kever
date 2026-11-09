@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>השכבה – Grave Marker</title>
+<meta name="description" content="תפילת השכבה לאיש ולאישה, עם שם הנפטר">
+<meta name="theme-color" content="#1f5b57">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&family=Frank+Ruhl+Libre:wght@500;700&display=swap">
+<style>
+:root{--bg:#f4f1ec;--card:#fffdf9;--ink:#23262b;--mute:#6d6a64;--line:#e2ddd4;--acc:#1f5b57;--acc2:#e9f1ef}
+@media (prefers-color-scheme:dark){:root{--bg:#15181b;--card:#1e2226;--ink:#ece9e3;--mute:#a19d95;--line:#30353a;--acc:#5fb3aa;--acc2:#1f2d2c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,Arial,sans-serif}
+.wrap{max-width:680px;margin:0 auto;padding:16px 16px 40px}
+h1{font-family:"Frank Ruhl Libre",serif;font-size:28px;margin:0}
+.lead{color:var(--mute);margin:4px 0 14px}
+.form{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+.form input{font:inherit;color:inherit;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px;min-width:0;width:100%}
+.seg{grid-column:1/-1;display:flex;gap:6px}
+.seg button{flex:1;font:inherit;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px;cursor:pointer}
+.seg button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.size{display:flex;gap:6px;justify-content:flex-end;margin:12px 0 0}
+.size button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:4px 12px;cursor:pointer}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+.card h2{font-family:"Frank Ruhl Libre",serif;font-size:22px;color:var(--acc);margin:0 0 8px}
+.t{font-family:"Frank Ruhl Libre",serif;font-size:calc(21px * var(--z,1));line-height:1.9;margin:6px 0}
+.n{font-size:14px;color:var(--mute);margin:10px 0 2px}
+.amen{color:var(--mute);font-size:.8em}
+.nm{color:var(--acc);font-weight:700}
+.note{font-size:13px;color:var(--mute);text-align:center;margin-top:20px}
+.note a{color:var(--mute)}
+.err{color:#b3412f}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>השכבה</h1>
+  <p class="lead">תפילת השכבה לעילוי נשמת הנפטר, עם שמו בתוך הנוסח.</p>
+  <div class="form">
+    <div class="seg"><button id="gM" class="on">לאיש</button><button id="gF">לאישה</button></div>
+    <input id="name" placeholder="שם הנפטר" aria-label="שם הנפטר">
+    <span id="rel">בֶּן</span>
+    <input id="parent" placeholder="שם האב / האם" aria-label="שם ההורה">
+    <div class="seg"><button id="lL" class="on">נוסח מלא</button><button id="lS">נוסח קצר</button></div>
+  </div>
+  <div class="size"><button id="zm" aria-label="הקטנת טקסט">א-</button><button id="zp" aria-label="הגדלת טקסט">א+</button></div>
+  <div id="out"></div>
+  <p class="note">הנוסח מתוך <a href="https://he.wikisource.org/wiki/השכבה" target="_blank" rel="noopener">ויקיטקסט</a>. במנהגים שונים יש הבדלי נוסח.</p>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const SRC='https://he.wikisource.org/w/api.php?action=parse&page='+encodeURIComponent('השכבה')+'&prop=text&format=json&origin=*';
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const TITLES={ML:'השכבה לאיש מורחב',FL:'השכבה לאישה מורחב',MS:'השכבה לאיש',FS:'השכבה לאישה'};
+let gender='M', len='L';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function sections(){
+  const c=store.get('ashkava',null); if(c&&c.ML)return c;
+  const j=await (await fetch(SRC)).json(); const d=document.createElement('div'); d.innerHTML=j.parse.text['*'];
+  d.querySelectorAll('.mw-editsection,style,script,.noprint,sup').forEach(x=>x.remove());
+  const lines=d.innerText.split('\n').map(l=>l.trim()).filter(Boolean), out={}; let cur=null;
+  const keyOf=Object.fromEntries(Object.entries(TITLES).map(([k,v])=>[v,k]));
+  for(const l of lines){ if(keyOf[l]){cur=keyOf[l];out[cur]=[];continue} if(cur)out[cur].push(l) }
+  if(!out.ML||!out.FL||!out.MS||!out.FS)throw new Error('parse');
+  store.set('ashkava',out); return out;
+}
+function render(sec){
+  const n=$('name').value.trim()||'פלוני', p=$('parent').value.trim()||(gender==='M'?'פלוני':'פלונית');
+  const who=`<span class="nm">${esc(n)} ${gender==='M'?'בֶּן':'בַּת'} ${esc(p)}</span>`;
+  const lines=sec[gender+len];
+  $('out').innerHTML=`<div class="card"><h2>${TITLES[gender+len]}</h2>`+lines.map(l=>{
+    if(!/[֑-ׇ]/.test(l))return `<p class="n">${esc(l)}</p>`;        // הוראה ללא ניקוד
+    let h=esc(l).replace(/^[א-ת]{1,2} (?=\S)/,'');                              // מספר פסוק בתחילת השורה
+    h=h.replace('שם בֶּן שם האב',who).replace('שם בֶּן שם האם',who).replace('שם בַּת שם האם',who).replace('מָרַת (פלונית)','מָרַת '+who);
+    h=h.replace(/\((אמן|עליו)\)/g,'<span class="amen">($1)</span>');
+    return `<p class="t">${h}</p>`}).join('')+'</div>';
+}
+async function go(){
+  $('rel').textContent=gender==='M'?'בֶּן':'בַּת';
+  $('out').innerHTML='<p class="lead">טוען…</p>';
+  try{render(await sections())}catch{$('out').innerHTML='<p class="err">לא הצלחנו לטעון את הנוסח. בדקו את החיבור לאינטרנט ונסו שוב.</p>'}
+}
+const seg=(a,b,set)=>{$(a).onclick=()=>{set(a);$(a).classList.add('on');$(b).classList.remove('on');go()};$(b).onclick=()=>{set(b);$(b).classList.add('on');$(a).classList.remove('on');go()}};
+seg('gM','gF',id=>gender=id==='gM'?'M':'F'); seg('lL','lS',id=>len=id==='lL'?'L':'S');
+$('name').oninput=$('parent').oninput=()=>{const c=store.get('ashkava',null);if(c&&c.ML)render(c)};
+let z=store.get('tz',1); document.documentElement.style.setProperty('--z',z);
+$('zp').onclick=()=>{z=Math.min(1.8,z+0.1);document.documentElement.style.setProperty('--z',z);store.set('tz',z)};
+$('zm').onclick=()=>{z=Math.max(0.7,z-0.1);document.documentElement.style.setProperty('--z',z);store.set('tz',z)};
+// ?n=שם&p=הורה&g=M|F
+const sp=new URLSearchParams(location.search);
+$('name').value=sp.get('n')||''; $('parent').value=sp.get('p')||'';
+if(sp.get('g')==='F')$('gF').click(); else go();
+</script>
+</body>
+</html>

@@ -145,7 +145,7 @@ h3.grp{font-size:15px;color:var(--mute);margin:18px 2px 8px}
       <a class="btn cta" href="/download/">⬇ הורדת האפליקציה</a>
     </div>
     <div class="offl"><span id="offTxt">שמרו את בית העלמין בטלפון כדי שיעבוד גם בלי קליטה (קל יותר מסרטון קצר בוואטסאפ).</span><button class="btn sec" id="offBtn">שמירה</button></div>
-    <footer><a href="#" id="showContacts">אנשי קשר ומכיני מצבות</a> · <a href="#" id="showPrayer">ברכת הרואה קברים</a> · <a href="/download/">הורדת האפליקציה</a> · <a href="marker/">כניסת עורכים</a>
+    <footer><a href="#" id="showContacts">אנשי קשר ומכיני מצבות</a> · <a href="#" id="showPrayer">ברכת הרואה קברים</a> · <a href="/ashkava/">השכבה</a> · <a href="/tefilon/">תפילון</a> · <a href="/download/">הורדת האפליקציה</a> · <a href="marker/">כניסת עורכים</a>
       <div class="built">נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
   </div>
 </section>
@@ -173,6 +173,7 @@ h3.grp{font-size:15px;color:var(--mute);margin:18px 2px 8px}
       <button class="btn" id="bDrive">נסיעה לבית העלמין</button>
       <button class="btn sec" id="bShare">שיתוף</button>
       <button class="btn sec" id="bTef">תפילון</button>
+      <button class="btn sec" id="bAsh">השכבה</button>
     </div>
     <button class="attach" id="bPhoto"><span style="font-size:22px">📷</span><span><b>צרף תמונה</b><small>צרף תמונת הקבר להנצחה</small></span></button>
     <input type="file" id="photoIn" accept="image/*" hidden>
@@ -431,6 +432,8 @@ $('photoIn').onchange=async e=>{
 // ---------- תפילון ----------
 $('bTef').onclick=()=>{const q=new URLSearchParams({n:cur.first_name||'',p:cur.mother_name||cur.father_name||'',t:cur.mother_name?'m':'f'});location.href='/tefilon/?'+q};
 
+$('bAsh').onclick=()=>{const q=new URLSearchParams({n:cur.first_name||'',p:cur.father_name||cur.mother_name||''});location.href='/ashkava/?'+q};
+
 // ---------- יום השנה ----------
 const dmy=d=>`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 const DOW=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
@@ -525,7 +528,8 @@ $('offBtn').onclick=async()=>{
     // 2. חלקות ותצלום רחפן
     await sb.from('plots').select('gush,plot,boundary').eq('cemetery_id',cem.id);
     if(cem.overlay_url)await fetch(cem.overlay_url).catch(()=>{});
-    await fetch('/tefilon/').catch(()=>{}); await fetch('https://he.wikisource.org/w/api.php?action=parse&page='+encodeURIComponent('תהלים קיט/ניקוד')+'&prop=text&format=json&origin=*').catch(()=>{});
+    await fetch('/tefilon/').catch(()=>{}); await fetch('/ashkava/').catch(()=>{});
+    await fetch('https://he.wikisource.org/w/api.php?action=parse&page='+encodeURIComponent('השכבה')+'&prop=text&format=json&origin=*').catch(()=>{}); await fetch('https://he.wikisource.org/w/api.php?action=parse&page='+encodeURIComponent('תהלים קיט/ניקוד')+'&prop=text&format=json&origin=*').catch(()=>{});
     store.set('off:'+cem.id,Date.now()); toast('נשמר. האתר יעבוד גם בלי קליטה');
   }catch(err){toast('השמירה לא הושלמה. נסו שוב כשהקליטה טובה.')}
   b.disabled=false; offStatus();
