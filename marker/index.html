@@ -678,13 +678,23 @@ $('impCheck').onclick=async()=>{
   const key=r=>r.plot&&r.row_no&&r.grave_no?[r.gush,r.plot,r.row_no,r.grave_no].join('|'):null, cnt={};
   rows.forEach(r=>{const k=key(r);if(k)cnt[k]=(cnt[k]||0)+1});
   rows.forEach(r=>{const k=key(r);if(k&&cnt[k]>1)r._i.push('עוד נפטר רשום באותו קבר');r.notes=r._i.length?r._i.join(', '):null});
+  // מצב עדכון: מדלגים על נפטרים שכבר קיימים בבית העלמין
+  const nk=v=>String(v??'').replace(/\s+/g,' ').trim();
+  const kName=r=>[nk(r.last_name),nk(r.first_name),r.death_date||''].join('|'), kPlace=r=>[nk(r.last_name),nk(r.first_name),r.plot||'',r.row_no||'',r.grave_no||''].join('|');
+  let exist=0, dup=0; const have=new Set();
+  if(!DEMO){$('impCheck').disabled=true;$('impCheck').textContent='בודק מול הרשומות הקיימות…';
+    for(let f=0;;f+=1000){const {data}=await sb.from('deceased').select('source_id,last_name,first_name,death_date,plot,row_no,grave_no').eq('cemetery_id',cem).order('id').range(f,f+999);
+      for(const x of data||[]){exist++;have.add('S'+x.source_id);have.add('N'+kName(x));have.add('P'+kPlace(x))}
+      if(!data||data.length<1000)break}
+    $('impCheck').disabled=false;$('impCheck').textContent='בדיקה ותצוגה מקדימה'}
+  if(exist){const keep=rows.filter(r=>{const d=(m.source_id!=null&&have.has('S'+r.source_id))||(r.death_date&&have.has('N'+kName(r)))||(r.plot&&r.row_no&&r.grave_no&&have.has('P'+kPlace(r)));if(d)dup++;return!d});
+    rows.length=0;rows.push(...keep)}
   imp.rows=rows;
   const by={}; rows.forEach(r=>r._i.forEach(x=>{const k=x.replace(/ \(.*/,'');by[k]=(by[k]||0)+1}));
   const plotsN=new Set(rows.filter(r=>r.plot).map(r=>r.gush+'/'+r.plot)).size;
-  let exist=0; if(!DEMO){const {count}=await sb.from('deceased').select('id',{count:'exact',head:true}).eq('cemetery_id',cem);exist=count||0}
   $('impSum').innerHTML=`<b>${rows.length.toLocaleString('he')}</b> נפטרים · <b>${plotsN}</b> חלקות`+(empty?` · ${empty} שורות ריקות ידולגו`:'')+
     `<br>${rows.filter(r=>r._i.length).length.toLocaleString('he')} רשומות עם הערה (יופיעו ב"רשומות לבדיקה"): `+(Object.entries(by).map(([k,v])=>`${escH(k)} – ${v}`).join(' · ')||'אין')+
-    (exist?`<br><b style="color:var(--warn)">בבית העלמין הזה כבר יש ${exist.toLocaleString('he')} רשומות. הטעינה תוסיף עליהן.</b>`:'');
+    (exist?`<br><b style="color:var(--ok)">מצב עדכון: בבית העלמין כבר יש ${exist.toLocaleString('he')} רשומות. ${dup.toLocaleString('he')} מהקובץ כבר קיימות וידולגו, ${rows.length.toLocaleString('he')} חדשות ייטענו.</b>`:'');
   const C=[['last_name','משפחה'],['first_name','פרטי'],['father_name','אב'],['mother_name','אם'],['plot','חלקה'],['row_no','שורה'],['grave_no','קבר'],['death_date','פטירה'],['death_date_hebrew','עברי'],['notes','הערה']];
   const show=[...rows.filter(r=>r._i.length).slice(0,15),...rows.filter(r=>!r._i.length).slice(0,15)];
   $('impPrev').innerHTML=`<tr>${C.map(c=>`<th>${c[1]}</th>`).join('')}</tr>`+show.map(r=>`<tr class="${r._i.length?'bad':''}">${C.map(c=>`<td>${escH(r[c[0]])}</td>`).join('')}</tr>`).join('');
