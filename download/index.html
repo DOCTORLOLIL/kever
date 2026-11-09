@@ -56,8 +56,15 @@ footer a{color:var(--mute)}
     <div>נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const url=document.getElementById('dl').href;
+// ספירת לחיצות על "הורדה" – פעם אחת לכל דפדפן, בלי פרטים מזהים
+const sbc=window.supabase?.createClient('https://vqydrrhgklikhfdsgrwr.supabase.co','sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C');
+document.querySelectorAll('a[href$=".apk"]').forEach(a=>a.addEventListener('click',()=>{
+  try{if(localStorage.getItem('gmDl'))return;localStorage.setItem('gmDl','1')}catch{}
+  sbc?.rpc('count_download',{p_kind:a.href.includes('app-release')?'universal':'arm64'}).then(()=>{},()=>{});
+}));
 try{const q=qrcode(0,'M');q.addData(url);q.make();document.getElementById('qr').innerHTML=q.createImgTag(4,0)}catch(e){document.querySelector('.qr').style.display='none'}
 // גודל ותאריך הגרסה האחרונה מ-GitHub
 fetch('https://api.github.com/repos/DOCTORLOLIL/gravemarker/releases/tags/test-build').then(r=>r.ok?r.json():null).then(j=>{

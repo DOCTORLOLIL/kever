@@ -83,6 +83,7 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
   <div class="egrid">
     <button class="t big" id="tMap"><span class="ic">🗺️</span><b>מפת סימון חלקות</b><small id="tMapSub"></small></button>
     <button class="t" id="bPh" hidden><span class="ic">📷</span><b>תמונות לאישור <span class="badge" id="phBadge" hidden></span></b></button>
+    <button class="t" id="bStat" hidden><span class="ic">📊</span><b>הורדות ומשתמשים</b><small id="statLine">…</small></button>
     <button class="t" id="bRep" hidden><span class="ic">📝</span><b>דיווחים <span class="badge" id="repBadge" hidden></span></b></button>
     <button class="t" id="bRev" hidden><span class="ic">🔎</span><b>רשומות לבדיקה <span class="badge" id="revBadge" hidden></span></b><small>חסרים ושגיאות מהרשימה</small></button>
     <button class="t" id="bImp" hidden><span class="ic">📥</span><b>ייבוא רשימת נפטרים</b><small>מקובץ Excel או CSV</small></button>
@@ -455,7 +456,7 @@ async function login(){
 async function afterLogin(){
   const {data}=await sb.from('editors').select('*').eq('user_id',user.id).maybeSingle();
   if(!data){$('dLogin').classList.add('show');$('lMsg').textContent='המשתמש לא מורשה לעריכה (חסר בטבלת editors).';return}
-  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; repCount(); revCount(); await loadCems();
+  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; $('bStat').hidden=false; repCount(); revCount(); statLoad(); await loadCems();
 }
 async function addEditor(){
   const name=$('eName').value.trim(), email=$('eEmail').value.trim().toLowerCase(), pass=$('ePass').value;
@@ -481,7 +482,7 @@ $('bClear').onclick=async()=>{if(await ask('לנקות את הסימון הנו�
 $('bSave').onclick=save; $('bDel').onclick=delPlot;
 $('cem').onchange=onCemChange; $('plot').onchange=onPlotChange; $('gush').onchange=onPlotChange;
 $('tMap').onclick=()=>{$('ehome').classList.add('off');map.invalidateSize()};
-$('toMenu').onclick=()=>{if(walking)stopWalk();$('ehome').classList.remove('off');if(!DEMO&&user){phCount();repCount();revCount()}};
+$('toMenu').onclick=()=>{if(walking)stopWalk();$('ehome').classList.remove('off');if(!DEMO&&user){phCount();repCount();revCount();statLoad()}};
 $('newCem').onclick=()=>$('dCem').classList.add('show'); $('cCancel').onclick=()=>$('dCem').classList.remove('show'); $('cGo').onclick=addCem;
 $('lGo').onclick=login; $('lPass').onkeydown=e=>{if(e.key==='Enter')login()};
 $('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
@@ -705,6 +706,18 @@ $('impGo').onclick=async()=>{
 $('bImp').onclick=()=>{$('impCem').textContent=cems.find(c=>c.id===$('cem').value)?.name||'';$('impFile').value='';$('impMsg1').textContent='';$('impMsg1').style.color='';$('impMsg3').style.color='';impShow(1);$('dImp').classList.add('show')};
 $('impBack1').onclick=()=>{$('impFile').value='';impShow(1)}; $('impBack2').onclick=()=>impShow(2);
 $('impClose').onclick=()=>$('dImp').classList.remove('show');
+
+// ---------- הורדות ומשתמשים ----------
+let stats=null;
+async function statLoad(){if(DEMO)return;const {data,error}=await sb.rpc('app_stats');
+  if(error){$('statLine').textContent='עוד לא הופעל';return} stats=data;
+  $('statLine').textContent=`${data.installs.toLocaleString('he')} התקנות · ${data.active30.toLocaleString('he')} פעילים בחודש`}
+$('bStat').onclick=async()=>{await statLoad();const show=html=>{$('aTitle').textContent='הורדות ומשתמשים';$('aText').innerHTML=html;$('aNo').hidden=true;$('aYes').textContent='סגירה';$('dAsk').classList.add('show');
+    $('aYes').onclick=()=>{$('dAsk').classList.remove('show');$('aNo').hidden=false;$('aYes').textContent='כן'}};
+  if(!stats){show('הספירה עוד לא הופעלה. צריך להריץ את stats.sql ב-Supabase.');return}
+  const L={he:'עברית',en:'אנגלית',fr:'צרפתית',ru:'רוסית',am:'אמהרית'};
+  const langs=Object.entries(stats.byLang||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${L[k]||k}: ${v}`).join(' · ')||'—';
+  show(`<b>${stats.installs.toLocaleString('he')}</b> התקנות ייחודיות של האפליקציה<br>${stats.new7} חדשות בשבוע האחרון<br>${stats.active7} פעילים בשבוע · ${stats.active30} פעילים בחודש<br>${stats.downloads.toLocaleString('he')} לחיצות על "הורדה" בדף ההורדה<br><br>לפי שפה: ${langs}`)};
 document.addEventListener('visibilitychange',async()=>{if(walking&&document.visibilityState==='visible'){try{wake=await navigator.wakeLock?.request('screen')}catch{}}});
 
 (async()=>{
