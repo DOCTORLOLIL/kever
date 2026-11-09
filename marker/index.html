@@ -599,7 +599,7 @@ const IMP_F=[
   ['plot','חלקה',['חלקה','plot']],
   ['row_no','שורה',['שורה','row']],
   ['grave_no','קבר',['מס קבר','מספר קבר','קבר','grave']],
-  ['death_date','תאריך פטירה',['תאריך פטירה לועזי','תאריך פטירה','ת. פטירה','תאריך','death']],
+  ['death_date','תאריך פטירה',['תאריך פטירה לועזי','לועזי','תאריך פטירה','ת. פטירה','תאריך','death']],
   ['death_date_hebrew','תאריך עברי',['תאריך עברי','עברי']],
   ['source_id','מזהה ברשימה המקורית',['מזהה','מס"ד','מסד','מספר רשומה','id']]];
 let imp={raw:[],txt:[],head:[],hr:0,map:{},rows:[]};
@@ -609,7 +609,8 @@ function impShow(n){[1,2,3].forEach(i=>$('imp'+i).hidden=i!==n)}
 function autoMap(head){
   const used=new Set(), m={};
   // קודם התאמות מדויקות, אחר כך חלקיות
-  for(const exact of [true,false])for(const [k,,syn] of IMP_F){if(m[k]!=null)continue;
+  const order=[...IMP_F].sort((x,y)=>(y[0]==='death_date_hebrew')-(x[0]==='death_date_hebrew'));   // עברי קודם, כדי שלא ייתפס כתאריך הלועזי
+  for(const exact of [true,false])for(const [k,,syn] of order){if(m[k]!=null)continue;
     for(const s of syn){const i=head.findIndex((h,j)=>!used.has(j)&&(exact?normH(h)===normH(s):normH(h).includes(normH(s))));
       if(i>=0){m[k]=i;used.add(i);break}}}
   return m;
