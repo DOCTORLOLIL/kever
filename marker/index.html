@@ -491,8 +491,10 @@ async function addEditor(){
   // לקוח נפרד, כדי שהיצירה לא תנתק אותך
   const tmp=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,storageKey:'tmp-signup'}});
   const {error:e1}=await tmp.auth.signUp({email,password:pass});
-  if(e1&&!/registered|exists/i.test(e1.message)){say('יצירת המשתמש נכשלה: '+e1.message,'bad');$('eGo').disabled=false;return}
+  // שגיאה בשליחת מייל אימות לא חוסמת: העורך מאושר ממילא על ידי המנהל. ממשיכים ובודקים אם המשתמש נוצר
+  if(e1&&!/registered|exists|confirmation email|sending/i.test(e1.message)){say('יצירת המשתמש נכשלה: '+e1.message,'bad');$('eGo').disabled=false;return}
   const {data,error:e2}=await sb.rpc('add_editor',{p_email:email,p_name:name});
+  if(e2&&e1&&/confirmation email|sending/i.test(e1.message)){say('Supabase לא הצליח לשלוח מייל אימות, ולכן המשתמש לא נוצר. צריך לכבות ב-Supabase את "Confirm email" (הסבר אצל Claude) ולנסות שוב.','bad');$('eGo').disabled=false;return}
   $('eGo').disabled=false;
   if(e2){say('המינוי נכשל: '+e2.message,'bad');return}
   say(data==='existing'?`${name} כבר היה רשום — מונה כעורך. הסיסמה הקודמת שלו נשארת.`:`${name} מונה כעורך ✓ אפשר להיכנס עם האימייל והסיסמה.`,'ok');
