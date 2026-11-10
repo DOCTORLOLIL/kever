@@ -696,7 +696,7 @@ $('impCheck').onclick=async()=>{
     const T=imp.txt[i], R=imp.raw[i]||[], g=k=>m[k]==null?'':T[m[k]];
     const r={cemetery_id:cem,last_name:cleanName(g('last_name')),first_name:cleanName(g('first_name')),alt_name:cleanName(g('alt_name')),
       father_name:cleanName(g('father_name')),mother_name:cleanName(g('mother_name')),gush:cleanNum(g('gush'))||'1',
-      plot:cleanNum(g('plot')),row_no:cleanNum(g('row_no')),grave_no:cleanNum(g('grave_no')),source_id:cleanNum(g('source_id'))||String(i+1)};
+      plot:cleanNum(g('plot')),row_no:cleanNum(g('row_no')),grave_no:cleanNum(g('grave_no')),source_id:(x=>/^\d+$/.test(x||'')?+x:i+1)(cleanNum(g('source_id')))};
     if(!r.last_name&&!r.first_name){empty++;continue}
     const issues=[];
     if(!r.first_name)issues.push('חסר שם פרטי');
@@ -791,7 +791,7 @@ $('aCancel').onclick=()=>{aStopGps();$('dAdd').classList.remove('show')};
 $('aSave').onclick=async()=>{
   const v=i=>{const x=$(i).value.trim().replace(/\s+/g,' ');return x||null};
   const row={cemetery_id:$('cem').value,last_name:v('aLast'),first_name:v('aFirst'),father_name:v('aFather'),mother_name:v('aMother'),
-    gush:v('aGush')||'1',plot:v('aPlot'),row_no:v('aRow'),grave_no:v('aGrave'),death_date:v('aDate'),source_id:'manual-'+Date.now()};
+    gush:v('aGush')||'1',plot:v('aPlot'),row_no:v('aRow'),grave_no:v('aGrave'),death_date:v('aDate')};   // source_id נשאר ריק – נפטר שנוסף ידנית
   row.death_date_hebrew=hebOf(row.death_date); row.death_date_none=!row.death_date&&$('aNone').checked;
   if(!row.last_name&&!row.first_name){$('aMsg').textContent='צריך לפחות שם משפחה או שם פרטי.';$('aMsg').style.color='var(--bad)';return}
   const miss=[];if(!row.first_name)miss.push('חסר שם פרטי');if(!row.death_date&&!row.death_date_none)miss.push('חסר תאריך פטירה');if(!row.plot||!row.row_no||!row.grave_no)miss.push('חסר מיקום (חלקה/שורה/קבר)');
