@@ -214,6 +214,7 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
       <label>שם משפחה<input id="aLast"></label><label>שם פרטי<input id="aFirst"></label>
       <label>שם האב<input id="aFather"></label><label>שם האם<input id="aMother"></label>
       <label style="grid-column:1/-1">תאריך פטירה<input id="aDate" type="date"></label>
+      <label style="grid-column:1/-1;flex-direction:row;gap:6px;align-items:center;font-size:14px;color:var(--ink)"><input type="checkbox" id="aNone" style="width:auto"> ללא תאריך</label>
     </div>
     <div id="aHeb" style="font-size:14px;color:var(--pri);min-height:20px;margin:2px 0 6px"></div>
     <div class="g">
@@ -559,12 +560,12 @@ $('addEd').onclick=()=>{$('eMsg').textContent='';$('dEd').classList.add('show')}
 $('eCancel').onclick=()=>$('dEd').classList.remove('show'); $('eGo').onclick=addEditor;
 // ---------- רשומות לבדיקה ----------
 const escH=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const REV_KINDS=[['','הכל'],['חסר מיקום','חסר מיקום'],['חסר שם פרטי','חסר שם פרטי'],['עוד נפטר','כמה נפטרים באותו קבר'],['לא במפה','חלקה לא במפה'],['לא תקני','מספר לא תקני'],['תאריך','תאריך']];
+const REV_KINDS=[['','הכל'],['חסר מיקום','חסר מיקום'],['חסר שם פרטי','חסר שם פרטי'],['חסר תאריך','חסר תאריך'],['עוד נפטר','כמה נפטרים באותו קבר'],['לא במפה','חלקה לא במפה'],['לא תקני','מספר לא תקני'],['תאריך לועזי תוקן','תאריך שתוקן']];
 let revKind='', revFrom=0, revTimer=null;
 const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const hebOf=iso=>{if(!iso)return null;const [y,m,d]=iso.split('-').map(Number);try{return HebCal.fmt(HebCal.toHeb(new Date(y,m-1,d)))}catch{return null}};
 function revQuery(head){
-  let q=sb.from('deceased').select(head?'id':'id,first_name,last_name,father_name,mother_name,gush,plot,row_no,grave_no,death_date,notes',head?{count:'exact',head:true}:undefined)
+  let q=sb.from('deceased').select(head?'id':'id,first_name,last_name,father_name,mother_name,gush,plot,row_no,grave_no,death_date,death_date_none,notes',head?{count:'exact',head:true}:undefined)
     .eq('cemetery_id',$('cem').value).not('notes','is',null).not('notes','like','✓%');
   if(revKind)q=q.ilike('notes',`%${revKind}%`);
   const w=$('revQ')?.value.trim(); if(!head&&w)q=q.or(`last_name.ilike.*${w}*,first_name.ilike.*${w}*`);
@@ -586,6 +587,7 @@ async function revLoad(){
   $('revList').insertAdjacentHTML('beforeend',data.map(r=>`<div class="rv" data-id="${r.id}" data-note="${escH(r.notes)}">
     <div class="note">⚠ ${escH(r.notes)}</div>
     <div class="g">${F.map(([k,l])=>`<label>${l}<input data-f="${k}" ${k==='death_date'?'type="date"':''} value="${escH(r[k])}"></label>`).join('')}</div>
+    <label style="display:flex;gap:6px;align-items:center;font-size:14px;margin-top:4px"><input type="checkbox" data-none ${r.death_date_none?'checked':''} style="width:auto"> תאריך פטירה: ללא (אין תאריך ידוע)</label>
     ${/עוד נפטר/.test(r.notes)?`<div class="same" data-p="${escH(r.plot)}" data-r="${escH(r.row_no)}" data-g="${escH(r.grave_no)}" data-gush="${escH(r.gush)}" style="font-size:13px;color:var(--mute);margin-top:4px"></div>`:''}
     <div class="row" style="margin-top:6px"><button class="small" data-a="save">שמירה</button><button class="ok small" data-a="done">✓ טופל</button><span class="m" style="font-size:13px;align-self:center"></span></div></div>`).join(''));
   $('revMore').hidden=data.length<20; revFrom+=data.length;
@@ -599,8 +601,12 @@ async function revLoad(){
 $('revList').onclick=async ev=>{
   const b=ev.target.closest('button[data-a]'); if(!b)return; const it=b.closest('.rv'), m=it.querySelector('.m');
   const row={}; it.querySelectorAll('input[data-f]').forEach(i=>{const v=i.value.trim().replace(/\s+/g,' ');row[i.dataset.f]=v||null});
+  row.death_date_none=it.querySelector('[data-none]').checked&&!row.death_date;
   row.death_date_hebrew=hebOf(row.death_date);
-  if(b.dataset.a==='done')row.notes='✓ '+it.dataset.note;
+  // תאריך הוזן או סומן "ללא" – ההערה "חסר תאריך פטירה" יורדת
+  let note=it.dataset.note;
+  if(row.death_date||row.death_date_none)note=note.split(', ').filter(x=>!x.startsWith('חסר תאריך פטירה')).join(', ');
+  if(b.dataset.a==='done')row.notes=note?'✓ '+note:null; else if(note!==it.dataset.note){row.notes=note||null;it.dataset.note=note;it.querySelector('.note').textContent=note?'⚠ '+note:'✓ אין הערות פתוחות'}
   b.disabled=true; m.textContent='שומר…';
   const {error}=await sb.from('deceased').update(row).eq('id',+it.dataset.id);
   b.disabled=false;
@@ -694,7 +700,11 @@ $('impCheck').onclick=async()=>{
     if(!r.first_name)issues.push('חסר שם פרטי');
     if(!r.plot||!r.row_no||!r.grave_no)issues.push('חסר מיקום (חלקה/שורה/קבר)');
     else if(!/^\d+$/.test(r.row_no)||!/^\d+$/.test(r.grave_no))issues.push('מספר שורה/קבר לא תקני');
-    if(m.death_date!=null){const d=parseDate(R[m.death_date],T[m.death_date]);r.death_date=d.v;if(d.bad)issues.push('תאריך פטירה לא תקין ('+String(T[m.death_date]).trim()+')')}
+    r.death_date_none=false;
+    if(m.death_date!=null){const txt=String(T[m.death_date]??'').trim();
+      if(/^(ללא|אין|לא ידוע)$/.test(txt))r.death_date_none=true;
+      else{const d=parseDate(R[m.death_date],T[m.death_date]);r.death_date=d.v;if(d.bad)issues.push('תאריך פטירה לא תקין ('+txt+')')}}
+    if(!r.death_date&&!r.death_date_none&&!issues.some(x=>x.startsWith('תאריך פטירה')))issues.push('חסר תאריך פטירה');
     r.death_date_hebrew=hebOf(r.death_date)||(m.death_date_hebrew!=null?cleanName(g('death_date_hebrew')):null);
     r._i=issues; rows.push(r);
   }
@@ -755,7 +765,7 @@ $('bStat').onclick=async()=>{await statLoad();const show=html=>{$('aTitle').text
 
 // ---------- הוספת נפטר (ביום הקבורה) ----------
 let aWatch=null, aBest=null, aFixes=[], aLoc=null, aOccT=null;
-function aReset(){['aLast','aFirst','aFather','aMother','aDate','aPlot','aRow','aGrave'].forEach(i=>$(i).value='');$('aGush').value='1';
+function aReset(){['aLast','aFirst','aFather','aMother','aDate','aPlot','aRow','aGrave'].forEach(i=>$(i).value='');$('aNone').checked=false;$('aGush').value='1';
   $('aHeb').textContent='';$('aOcc').textContent='';$('aMsg').textContent='';aLoc=null;$('aGpsTxt').textContent='עמדו ליד הקבר ולחצו.';$('aGpsBtn').textContent='שמירת המיקום שלי כמיקום הקבר';$('aSave').disabled=false}
 function aStartGps(){if(!navigator.geolocation){$('aGpsTxt').textContent='אין גישה למיקום במכשיר הזה.';return}
   aBest=null;aFixes=[];aWatch=navigator.geolocation.watchPosition(p=>{aFixes.push(p.coords);if(aFixes.length>30)aFixes.shift();if(!aBest||p.coords.accuracy<aBest.accuracy)aBest=p.coords;
@@ -780,9 +790,9 @@ $('aSave').onclick=async()=>{
   const v=i=>{const x=$(i).value.trim().replace(/\s+/g,' ');return x||null};
   const row={cemetery_id:$('cem').value,last_name:v('aLast'),first_name:v('aFirst'),father_name:v('aFather'),mother_name:v('aMother'),
     gush:v('aGush')||'1',plot:v('aPlot'),row_no:v('aRow'),grave_no:v('aGrave'),death_date:v('aDate'),source_id:'manual-'+Date.now()};
-  row.death_date_hebrew=hebOf(row.death_date);
+  row.death_date_hebrew=hebOf(row.death_date); row.death_date_none=!row.death_date&&$('aNone').checked;
   if(!row.last_name&&!row.first_name){$('aMsg').textContent='צריך לפחות שם משפחה או שם פרטי.';$('aMsg').style.color='var(--bad)';return}
-  const miss=[];if(!row.first_name)miss.push('חסר שם פרטי');if(!row.plot||!row.row_no||!row.grave_no)miss.push('חסר מיקום (חלקה/שורה/קבר)');
+  const miss=[];if(!row.first_name)miss.push('חסר שם פרטי');if(!row.death_date&&!row.death_date_none)miss.push('חסר תאריך פטירה');if(!row.plot||!row.row_no||!row.grave_no)miss.push('חסר מיקום (חלקה/שורה/קבר)');
   row.notes=miss.length?miss.join(', '):null;
   if(!aLoc&&!await ask('לשמור בלי מיקום GPS?','לא נקלט מיקום הקבר. אפשר לשמור עכשיו ולסמן את המיקום בהמשך.'))return;
   $('aSave').disabled=true;$('aMsg').style.color='';$('aMsg').textContent='שומר…';
