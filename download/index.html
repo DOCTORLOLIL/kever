@@ -65,13 +65,15 @@ document.querySelectorAll('a[href$=".apk"]').forEach(a=>a.addEventListener('clic
   try{if(localStorage.getItem('gmDl'))return;localStorage.setItem('gmDl','1')}catch{}
   sbc?.rpc('count_download',{p_kind:a.href.includes('app-release')?'universal':'arm64'}).then(()=>{},()=>{});
 }));
-try{const q=qrcode(0,'M');q.addData(url);q.make();document.getElementById('qr').innerHTML=q.createImgTag(4,0)}catch(e){document.querySelector('.qr').style.display='none'}
+try{const q=qrcode(0,'M');q.addData(location.origin+'/download/?go=1');q.make();document.getElementById('qr').innerHTML=q.createImgTag(4,0)}catch(e){document.querySelector('.qr').style.display='none'}
 // גודל ותאריך הגרסה האחרונה מ-GitHub
 fetch('https://api.github.com/repos/DOCTORLOLIL/gravemarker/releases/tags/test-build').then(r=>r.ok?r.json():null).then(j=>{
   const a=j?.assets?.find(x=>x.name==='app-arm64-v8a-release.apk'); if(!a)return;
   const d=new Date(a.updated_at), dmy=`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
   document.getElementById('meta').textContent=`בחינם · גרסת בדיקה · ${Math.round(a.size/1048576)}MB · עודכן ${dmy}`;
 }).catch(()=>{});
+// סריקה מהמחשב: נספר ומתחיל הורדה
+if(new URLSearchParams(location.search).has('go')){document.getElementById('dl').click()}
 </script>
 </body>
 </html>

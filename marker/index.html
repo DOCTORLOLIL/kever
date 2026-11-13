@@ -758,12 +758,16 @@ let stats=null;
 async function statLoad(){if(DEMO)return;const {data,error}=await sb.rpc('app_stats');
   if(error){$('statLine').textContent='עוד לא הופעל';return} stats=data;
   $('statLine').textContent=`${data.installs.toLocaleString('he')} התקנות · ${data.active30.toLocaleString('he')} פעילים בחודש`}
-$('bStat').onclick=async()=>{await statLoad();const show=html=>{$('aTitle').textContent='הורדות ומשתמשים';$('aText').innerHTML=html;$('aNo').hidden=true;$('aYes').textContent='סגירה';$('dAsk').classList.add('show');
+$('bStat').onclick=async()=>{await statLoad();
+  // הורדות בפועל מ-GitHub (מתאפס בכל גרסה חדשה)
+  let gh='';try{const j=await (await fetch('https://api.github.com/repos/DOCTORLOLIL/gravemarker/releases/tags/test-build')).json();
+    const apk=j.assets.filter(a=>a.name.endsWith('.apk')), n=apk.reduce((a,x)=>a+x.download_count,0), d=new Date(apk[0].updated_at);
+    gh=`<br><b>${n.toLocaleString('he')}</b> הורדות של קובץ האפליקציה מאז הגרסה של ${d.toLocaleDateString('he-IL')}`}catch{}const show=html=>{$('aTitle').textContent='הורדות ומשתמשים';$('aText').innerHTML=html;$('aNo').hidden=true;$('aYes').textContent='סגירה';$('dAsk').classList.add('show');
     $('aYes').onclick=()=>{$('dAsk').classList.remove('show');$('aNo').hidden=false;$('aYes').textContent='כן'}};
   if(!stats){show('הספירה עוד לא הופעלה. צריך להריץ את stats.sql ב-Supabase.');return}
   const L={he:'עברית',en:'אנגלית',fr:'צרפתית',ru:'רוסית',am:'אמהרית'};
   const langs=Object.entries(stats.byLang||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${L[k]||k}: ${v}`).join(' · ')||'—';
-  show(`<b>${stats.installs.toLocaleString('he')}</b> התקנות ייחודיות של האפליקציה<br>${stats.new7} חדשות בשבוע האחרון<br>${stats.active7} פעילים בשבוע · ${stats.active30} פעילים בחודש<br>${stats.downloads.toLocaleString('he')} לחיצות על "הורדה" בדף ההורדה<br><br>לפי שפה: ${langs}`)};
+  show(`<b>${stats.installs.toLocaleString('he')}</b> התקנות ייחודיות של האפליקציה<br>${stats.new7} חדשות בשבוע האחרון<br>${stats.active7} פעילים בשבוע · ${stats.active30} פעילים בחודש<br>${stats.downloads.toLocaleString('he')} לחיצות על "הורדה" בדף ההורדה${gh}<br><br>לפי שפה: ${langs}<br><small style="color:var(--mute)">התקנה נספרת כשהאפליקציה נפתחת עם אינטרנט.</small>`)};
 
 // ---------- הוספת נפטר (ביום הקבורה) ----------
 let aWatch=null, aBest=null, aFixes=[], aLoc=null, aOccT=null;
