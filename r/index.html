@@ -156,7 +156,7 @@ function render(){
     return `<div class="item ${done?'done':''} ${id===next?'next':''}" data-id="${id}">
       <span class="ic handle" aria-label="גרירה">≡</span><span class="num">${i+1}</span>
       <span class="th">${TH[id]?`<img src="${esc(TH[id])}" alt="" loading="lazy">`:'📷'}</span>
-      <span class="txt"><b>${esc([d.first_name,d.last_name].filter(Boolean).join(' '))}</b><small>${d.plot?'חלקה '+esc(d.plot):''}${dist!=null?` · ${dist} מ' מהקודם`:''}</small></span>
+      <span class="txt"><b>${esc([d.first_name,d.last_name].filter(Boolean).join(' '))}</b><small>${d.plot?'חלקה '+esc(d.plot):''}${dist!=null?(dist<5?' · באותה חלקה':` · ${dist} מ' מהקודם`):''}</small></span>
       <button class="ic" data-a="done" aria-label="סימון ביקור">${done?'✅':'⬜'}</button>
       <a class="go" href="/?c=${encodeURIComponent(r.cem)}&d=${id}">ניווט</a>
       <button class="ic" data-a="del" aria-label="הסרה">✕</button></div>`}).join('')}</div>
