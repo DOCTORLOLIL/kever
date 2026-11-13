@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "ltd.bulu.gravemarker",
+    "sha256_cert_fingerprints": ["44:86:A7:D7:FC:B7:94:E3:25:62:99:C8:1B:B1:21:EA:F0:7D:F4:AB:F7:99:78:3E:C2:27:26:54:18:57:1C:62"]
+  }
+}]

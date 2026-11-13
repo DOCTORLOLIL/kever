@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<title>ביקור משפחתי – Grave Marker</title>
+<meta name="description" content="מסלול ביקור בבית העלמין: כמה קברים בסדר הליכה, עם ניווט לכל קבר">
+<meta name="theme-color" content="#1f5b57">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#f4f1ec;--card:#fffdf9;--ink:#23262b;--mute:#6d6a64;--line:#e2ddd4;--acc:#1f5b57;--acc2:#e9f1ef;--red:#DC1E1E;--gold:#E0A83A}
+@media (prefers-color-scheme:dark){:root{--bg:#15181b;--card:#1e2226;--ink:#ece9e3;--mute:#a19d95;--line:#30353a;--acc:#5fb3aa;--acc2:#1f2d2c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,Arial,sans-serif}
+header{background:#1f5b57;color:#fff;padding:14px 16px}
+header .row{display:flex;align-items:center;gap:10px;max-width:640px;margin:0 auto}
+header h1{font-size:20px;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+header small{display:block;opacity:.85;font-size:13px}
+header a{color:#fff;text-decoration:none;font-size:22px}
+.wrap{max-width:640px;margin:0 auto;padding:12px 16px 40px}
+.banner{background:var(--gold);color:#2B1E00;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;margin-bottom:10px;font-size:14px}
+.banner b{display:block}
+.banner a,.banner button{flex:0 0 auto;background:#2B1E00;color:#fff;border:0;border-radius:9px;padding:8px 12px;font:inherit;font-weight:700;text-decoration:none;cursor:pointer}
+.hint{font-size:12px;color:var(--mute);margin:4px 2px 6px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.item.next{border:2px solid var(--acc)}
+.num{flex:0 0 26px;height:26px;border-radius:50%;background:var(--red);color:#fff;font-weight:700;font-size:13px;display:grid;place-items:center}
+.item.done .num{background:#2e7d32}
+.th{flex:0 0 52px;height:52px;border-radius:8px;background:var(--acc2);overflow:hidden;display:grid;place-items:center;color:var(--mute);font-size:20px}
+.th img{width:100%;height:100%;object-fit:cover}
+.txt{flex:1;min-width:0}.txt b{display:block}.txt small{color:var(--mute)}
+.ic{flex:0 0 auto;border:0;background:none;color:var(--mute);font-size:20px;padding:6px;cursor:pointer}
+.handle{cursor:grab;touch-action:none}
+.go{flex:0 0 auto;background:var(--acc);color:#fff;border-radius:9px;padding:7px 10px;text-decoration:none;font-size:14px}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:13px;background:var(--acc);color:#fff;font:inherit;font-weight:700;font-size:16px;cursor:pointer;text-align:center;text-decoration:none}
+.btn.sec{background:var(--acc2);color:var(--acc);font-weight:500;font-size:15px}
+.two{display:flex;gap:8px;margin-top:8px}.two .btn{flex:1}
+.empty{color:var(--mute);text-align:center;padding:30px 10px}
+.saved a{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;color:inherit;text-decoration:none}
+.saved small{color:var(--mute)}
+.dlg{position:fixed;inset:0;background:#0007;display:none;align-items:flex-end;justify-content:center;z-index:2000}
+.dlg.show{display:flex}
+.dlg .box{background:var(--card);color:var(--ink);width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:16px}
+.dlg h2{font-size:18px;margin:0 0 10px}
+.dlg input{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);margin-bottom:10px}
+.opt{display:flex;gap:10px;align-items:center;width:100%;border:0;background:none;color:inherit;font:inherit;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer;text-align:start}
+#mapBox{height:60vh;border-radius:12px;overflow:hidden}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#23262b;color:#fff;padding:10px 16px;border-radius:10px;z-index:3000;font-size:14px}
+footer{text-align:center;color:var(--mute);font-size:13px;padding-top:20px}footer a{color:var(--mute)}
+</style>
+</head>
+<body>
+<header><div class="row"><a href="/" aria-label="חזרה לחיפוש">→</a><div style="flex:1;min-width:0"><h1 id="title">הביקור המשפחתי</h1><small id="stats"></small></div><button id="bMenu" class="ic" style="color:#fff" aria-label="אפשרויות">⋮</button></div></header>
+<div class="wrap">
+  <div class="banner" id="appBanner" hidden><span style="font-size:24px">📱</span><span style="flex:1"><b>יש אפליקציה!</b>שומרת את המסלול בטלפון, מנווטת לכל קבר ומציגה את תמונתו כשמגיעים.</span><a href="/download/">הורדה</a></div>
+  <div class="banner" id="saveBanner" hidden><span style="font-size:22px">🔖</span><span style="flex:1">שמרו את המסלול כדי לחזור אליו בביקור הבא</span><button id="bSave">שמירה</button></div>
+  <div id="main"></div>
+  <footer><a href="/">חיפוש קבר</a> · <a href="/download/">הורדת האפליקציה</a><div>נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
+</div>
+
+<div class="dlg" id="dName"><div class="box">
+  <h2>שם המסלול</h2><input id="nameIn" maxlength="80">
+  <div class="two"><button class="btn" id="nameOk">שמירה</button><button class="btn sec" id="nameCancel">ביטול</button></div>
+</div></div>
+<div class="dlg" id="dShare"><div class="box">
+  <h2>שיתוף לבני המשפחה</h2>
+  <button class="opt" id="shWa"><span style="font-size:22px">💬</span>וואטסאפ</button>
+  <button class="opt" id="shMail"><span style="font-size:22px">✉️</span>מייל</button>
+  <button class="opt" id="shMore"><span style="font-size:22px">📤</span>אפשרויות נוספות</button>
+  <button class="opt" id="shCopy"><span style="font-size:22px">🔗</span>העתקת הקישור</button>
+  <button class="btn sec" id="shClose" style="margin-top:10px">סגירה</button>
+</div></div>
+<div class="dlg" id="dMap"><div class="box"><div id="mapBox"></div><button class="btn sec" id="mapClose" style="margin-top:10px">סגירה</button></div></div>
+<div class="dlg" id="dMenu"><div class="box">
+  <button class="opt" id="mRename">✏️ שינוי שם המסלול</button>
+  <button class="opt" id="mReset">↺ התחלה מחדש (ביטול הסימונים)</button>
+  <button class="opt" id="mList">📋 המסלולים שלי</button>
+  <button class="opt" id="mDelete" style="color:#b3412f">🗑️ מחיקת המסלול</button>
+  <button class="btn sec" id="mClose" style="margin-top:10px">סגירה</button>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const SB='https://vqydrrhgklikhfdsgrwr.supabase.co', KEY='sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C';
+const api=(p)=>fetch(`${SB}/rest/v1/${p}${p.includes('?')?'&':'?'}apikey=${KEY}`).then(r=>r.ok?r.json():[]);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const toast=t=>{const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2500)};
+const R={all(){try{return JSON.parse(localStorage.getItem('gmRoutes'))||[]}catch{return[]}},
+  write(l){try{localStorage.setItem('gmRoutes',JSON.stringify(l))}catch{}},
+  activeId(){try{return localStorage.getItem('gmActive')}catch{return null}},
+  setActive(id){try{localStorage.setItem('gmActive',id)}catch{}},
+  put(r){const l=this.all();const i=l.findIndex(x=>x.id===r.id);i>=0?l[i]=r:l.push(r);this.write(l)},
+  remove(id){this.write(this.all().filter(x=>x.id!==id));if(this.activeId()===id)try{localStorage.removeItem('gmActive')}catch{}}};
+
+let r=null, cem=null, D={}, POS={}, TH={};
+const isAndroid=/Android/i.test(navigator.userAgent);
+$('appBanner').hidden=!isAndroid;
+
+// ---------- גאומטריה ----------
+const meters=(a,b)=>{const k=Math.PI/180,x=(b[1]-a[1])*k*Math.cos((a[0]+b[0])/2*k),y=(b[0]-a[0])*k;return Math.hypot(x,y)*6371000};
+const centroid=ring=>{let A=0,x=0,y=0;for(let i=0;i<ring.length-1;i++){const [x0,y0]=ring[i],[x1,y1]=ring[i+1],f=x0*y1-x1*y0;A+=f;x+=(x0+x1)*f;y+=(y0+y1)*f}A/=2;return [y/(6*A),x/(6*A)]};
+const roundM=m=>m<100?Math.round(m/5)*5:Math.round(m/10)*10;
+function order(ids,start){const left=[...ids],out=[];let c=start;
+  while(left.length){let pick=left[0],best=Infinity;if(c)for(const id of left){const p=POS[id];const d=p?meters(c,p):1e9;if(d<best){best=d;pick=id}}
+    out.push(pick);left.splice(left.indexOf(pick),1);c=POS[pick]||c}return out}
+const routeLen=()=>{let s=0,prev=null;for(const id of r.ids){const p=POS[id];if(p&&prev)s+=meters(prev,p);if(p)prev=p}return roundM(s)};
+
+// ---------- שם מוצע ----------
+const HEB=['א','ב','ג','ד','ה','ו','ז','ח','ט','י','יא','יב','יג','יד','טו','טז','יז','יח','יט','כ'];
+function suggest(){const c={};for(const id of r.ids){const n=(D[id]?.last_name||'').trim();if(n)c[n]=(c[n]||0)+1}
+  const top=Object.entries(c).sort((a,b)=>b[1]-a[1])[0];
+  if(top&&(top[1]>=2||r.ids.length===1))return 'משפחת '+top[0];
+  const taken=new Set(R.all().filter(x=>x.saved).map(x=>x.name)),town=cem?.town||cem?.name||'';
+  for(let i=0;i<200;i++){const n=`ביקור בבית העלמין ${town} ${i<HEB.length?HEB[i]+"'":i+1}`;if(!taken.has(n))return n}
+  return 'ביקור בבית העלמין '+town}
+
+// ---------- טעינה ----------
+async function load(){
+  const sp=new URLSearchParams(location.search);
+  const ids=(sp.get('ids')||'').split(',').map(Number).filter(Boolean);
+  if(ids.length&&sp.get('c')){
+    // מסלול ששותף: אם כבר שמור אצלנו מסלול זהה – משתמשים בו
+    const same=R.all().find(x=>x.cem===sp.get('c')&&x.ids.join()===ids.join());
+    r=same||{id:Date.now().toString(36),name:sp.get('n')||'',cem:sp.get('c'),ids,done:[],saved:false,manual:true};
+    R.put(r);R.setActive(r.id);history.replaceState(null,'','/r/');
+  }else r=R.all().find(x=>x.id===R.activeId())||null;
+  if(!r||!r.ids.length){showList();return}
+  $('main').innerHTML='<p class="empty">טוען…</p>';
+  const [cems,rows,plots,locs,photos]=await Promise.all([
+    api(`cemeteries?id=eq.${encodeURIComponent(r.cem)}`),
+    api(`deceased?id=in.(${r.ids.join(',')})&select=id,first_name,last_name,plot,row_no,grave_no,gush`),
+    api(`plots?cemetery_id=eq.${encodeURIComponent(r.cem)}&select=gush,plot,boundary`),
+    api(`grave_locations?deceased_id=in.(${r.ids.join(',')})&select=deceased_id,lat,lng,created_at&order=created_at.desc`),
+    api(`grave_photos?deceased_id=in.(${r.ids.join(',')})&status=eq.approved&select=deceased_id,path&order=created_at`)]);
+  cem=cems[0]||null; for(const d of rows)D[d.id]=d;
+  r.ids=r.ids.filter(id=>D[id]);
+  for(const id of r.ids){const g=locs.find(l=>l.deceased_id===id);
+    if(g)POS[id]=[g.lat,g.lng];
+    else{const d=D[id],p=plots.find(p=>p.plot===d.plot&&p.gush===(d.gush||'1')&&p.boundary);if(p)POS[id]=centroid(p.boundary.coordinates[0])}}
+  for(const p of photos)if(!TH[p.deceased_id])TH[p.deceased_id]=`${SB}/storage/v1/object/public/grave-photos/${p.path}`;
+  if(!r.manual&&r.ids.length>1){r.ids=order(r.ids,cem?[cem.center_lat,cem.center_lng]:null);R.put(r)}
+  render();
+}
+
+function render(){
+  $('title').textContent=r.name||'הביקור המשפחתי';
+  $('stats').textContent=`${r.ids.length} קברים · כ-${routeLen()} מ' הליכה`;
+  $('saveBanner').hidden=r.saved;
+  const next=r.ids.find(id=>!r.done.includes(id));
+  $('main').innerHTML=`<div class="hint">גררו את ≡ כדי לשנות את הסדר. הסדר נשמר אוטומטית.</div><div id="list">${r.ids.map((id,i)=>{
+    const d=D[id],done=r.done.includes(id),prev=i?POS[r.ids[i-1]]:null,dist=prev&&POS[id]?roundM(meters(prev,POS[id])):null;
+    return `<div class="item ${done?'done':''} ${id===next?'next':''}" data-id="${id}">
+      <span class="ic handle" aria-label="גרירה">≡</span><span class="num">${i+1}</span>
+      <span class="th">${TH[id]?`<img src="${esc(TH[id])}" alt="" loading="lazy">`:'📷'}</span>
+      <span class="txt"><b>${esc([d.first_name,d.last_name].filter(Boolean).join(' '))}</b><small>${d.plot?'חלקה '+esc(d.plot):''}${dist!=null?` · ${dist} מ' מהקודם`:''}</small></span>
+      <button class="ic" data-a="done" aria-label="סימון ביקור">${done?'✅':'⬜'}</button>
+      <a class="go" href="/?c=${encodeURIComponent(r.cem)}&d=${id}">ניווט</a>
+      <button class="ic" data-a="del" aria-label="הסרה">✕</button></div>`}).join('')}</div>
+    <a class="btn" style="margin-top:6px" ${next?`href="/?c=${encodeURIComponent(r.cem)}&d=${next}"`:''} id="bNext">${next?'▶ ניווט לקבר הבא':'✓ ביקרתם בכל הקברים'}</a>
+    <div class="two"><button class="btn sec" id="bShare">📤 שיתוף לבני המשפחה</button><button class="btn sec" id="bMap">🗺️ מפה</button></div>`;
+  new Sortable($('list'),{handle:'.handle',animation:150,onEnd:()=>{r.ids=[...$('list').children].map(e=>+e.dataset.id);r.manual=true;R.put(r);render()}});
+  $('list').onclick=e=>{const b=e.target.closest('button[data-a]');if(!b)return;const id=+b.closest('.item').dataset.id;
+    if(b.dataset.a==='done'){r.done=r.done.includes(id)?r.done.filter(x=>x!==id):[...r.done,id]}
+    else{r.ids=r.ids.filter(x=>x!==id);r.done=r.done.filter(x=>x!==id)}
+    R.put(r);r.ids.length?render():showList()};
+  $('bShare').onclick=()=>$('dShare').classList.add('show');
+  $('bMap').onclick=showMap;
+}
+
+// ---------- רשימת המסלולים ----------
+function showList(){
+  $('title').textContent='המסלולים שלי';$('stats').textContent='';$('saveBanner').hidden=true;
+  const l=R.all().filter(x=>x.ids.length).reverse();
+  $('main').innerHTML=l.length?`<div class="saved">${l.map(x=>`<a href="#" data-id="${x.id}"><b>${esc(x.name||'הביקור המשפחתי')}</b><br><small>${x.ids.length} קברים${x.saved?'':' · לא נשמר'}</small></a>`).join('')}</div>`
+    :`<p class="empty">עוד אין מסלולים. בכרטיס של נפטר באתר לחצו "הוספה לביקור המשפחתי".</p><a class="btn" href="/">חיפוש קבר</a>`;
+  $('main').querySelectorAll('[data-id]').forEach(a=>a.onclick=e=>{e.preventDefault();R.setActive(a.dataset.id);location.reload()});
+}
+
+// ---------- שמירה, שם, תפריט ----------
+function askName(){$('nameIn').value=r.name||suggest();$('dName').classList.add('show');$('nameIn').focus()}
+$('bSave').onclick=askName;
+$('nameOk').onclick=()=>{const n=$('nameIn').value.trim();if(!n)return;r.name=n;r.saved=true;R.put(r);$('dName').classList.remove('show');render();toast('המסלול נשמר בדפדפן הזה')};
+$('nameCancel').onclick=()=>$('dName').classList.remove('show');
+$('bMenu').onclick=()=>$('dMenu').classList.add('show');
+$('mClose').onclick=()=>$('dMenu').classList.remove('show');
+$('mRename').onclick=()=>{$('dMenu').classList.remove('show');if(r)askName()};
+$('mReset').onclick=()=>{$('dMenu').classList.remove('show');if(r){r.done=[];R.put(r);render()}};
+$('mList').onclick=()=>{$('dMenu').classList.remove('show');showList()};
+$('mDelete').onclick=()=>{$('dMenu').classList.remove('show');if(r&&confirm(`למחוק את המסלול "${r.name||'הביקור המשפחתי'}"?`)){R.remove(r.id);r=null;showList()}};
+
+// ---------- שיתוף ----------
+const shareUrl=()=>`${location.origin}/r/?${new URLSearchParams({c:r.cem,ids:r.ids.join(','),n:r.name||''})}`;
+const shareText=()=>`מסלול ביקור בבית העלמין ${cem?.name||''}: ${r.name||'הביקור המשפחתי'}\n${r.ids.map(id=>'• '+[D[id].first_name,D[id].last_name].filter(Boolean).join(' ')).join('\n')}\n${shareUrl()}`;
+$('shWa').onclick=()=>{location.href='https://wa.me/?text='+encodeURIComponent(shareText())};
+$('shMail').onclick=()=>{location.href=`mailto:?subject=${encodeURIComponent(r.name||'ביקור משפחתי')}&body=${encodeURIComponent(shareText())}`};
+$('shMore').onclick=async()=>{try{await navigator.share({title:r.name||'ביקור משפחתי',text:shareText()})}catch{}};
+$('shCopy').onclick=async()=>{try{await navigator.clipboard.writeText(shareUrl());toast('הקישור הועתק')}catch{prompt('העתיקו את הקישור:',shareUrl())}};
+$('shClose').onclick=()=>$('dShare').classList.remove('show');
+$('shMore').hidden=!navigator.share;
+
+// ---------- מפה ----------
+let map=null;
+function showMap(){$('dMap').classList.add('show');
+  setTimeout(()=>{if(!map){map=L.map('mapBox');L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:21,maxNativeZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map)}
+    map.eachLayer(l=>{if(!(l instanceof L.TileLayer))map.removeLayer(l)});
+    const pts=r.ids.map((id,i)=>[i+1,POS[id],r.done.includes(id)]).filter(p=>p[1]);
+    if(!pts.length)return;
+    L.polyline(pts.map(p=>p[1]),{color:'#1F8FFF',weight:3}).addTo(map);
+    for(const [n,p,done] of pts)L.marker(p,{icon:L.divIcon({className:'',html:`<div class="num" style="background:${done?'#2e7d32':'#DC1E1E'};width:26px">${n}</div>`,iconSize:[26,26],iconAnchor:[13,13]})}).addTo(map);
+    map.invalidateSize();map.fitBounds(L.latLngBounds(pts.map(p=>p[1])),{padding:[30,30],maxZoom:19})},50)}
+$('mapClose').onclick=()=>$('dMap').classList.remove('show');
+document.querySelectorAll('.dlg').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.classList.remove('show')}));
+
+load();
+</script>
+</body>
+</html>

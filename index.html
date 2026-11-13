@@ -175,6 +175,7 @@ h3.grp{font-size:15px;color:var(--mute);margin:18px 2px 8px}
       <button class="btn sec" id="bTef">תפילון</button>
       <button class="btn sec" id="bAsh">השכבה</button>
     </div>
+    <button class="attach" id="bVisit" style="background:#E0A83A;color:#2B1E00;border-color:#E0A83A"><span style="font-size:22px">⭐</span><span><b id="bVisitT">הוספה לביקור המשפחתי</b><small>כמה קברים במסלול אחד</small></span></button>
     <button class="attach" id="bPhoto"><span style="font-size:22px">📷</span><span><b>צרף תמונה</b><small>צרף תמונת הקבר להנצחה</small></span></button>
     <input type="file" id="photoIn" accept="image/*" hidden>
     <button class="linkbtn" id="bReport">דיווח על טעות או נזק</button>
@@ -296,7 +297,7 @@ async function openDeceased(id,push){
   let {data,error}=navigator.onLine?await sb.from('deceased').select('*').eq('id',id).maybeSingle():{error:1};
   if(error||!data){for(const c of cems){const loc=await localData(c.id);const f=loc?.find(x=>x.id===id);if(f){data=f;error=null;break}}}
   if(error||!data){toast('לא מצאנו את הרשומה');return}
-  cur=data;
+  cur=data; try{visitBtn()}catch{}
   if(!cem||cem.id!==data.cemetery_id){if(cems.some(c=>c.id===data.cemetery_id)){$('cem').value=data.cemetery_id;await setCem(data.cemetery_id)}}
   if(push)history.pushState({d:id},'',`?c=${encodeURIComponent(cem.id)}&d=${id}`);
   $('dName').textContent=fullName(data)+(data.alt_name?` (${data.alt_name})`:'');
@@ -402,6 +403,17 @@ async function loadPhotos(id){
   $('photos').innerHTML=(data||[]).map(p=>{const u=sb.storage.from('grave-photos').getPublicUrl(p.path).data.publicUrl;return `<img src="${esc(u)}" alt="תמונת הקבר" loading="lazy" onclick="window.open(this.src)">`}).join('');
 }
 $('bPhoto').onclick=()=>$('photoIn').click();
+// ---------- ביקור משפחתי (נשמר בדפדפן, משותף עם /r/) ----------
+const R={all(){try{return JSON.parse(localStorage.getItem('gmRoutes'))||[]}catch{return[]}},
+  write(l){try{localStorage.setItem('gmRoutes',JSON.stringify(l))}catch{}},
+  active(){let id;try{id=localStorage.getItem('gmActive')}catch{}return this.all().find(r=>r.id===id)||null}};
+function visitBtn(){const a=R.active(),inR=!!(a&&cur&&a.ids.includes(cur.id));
+  $('bVisitT').textContent=inR?'בביקור המשפחתי ✓ (לחצו לפתיחה)':'הוספה לביקור המשפחתי'}
+$('bVisit').onclick=()=>{if(!cur)return;let l=R.all(),a=R.active();
+  if(a&&a.ids.includes(cur.id)){location.href='/r/';return}
+  if(!a||a.cem!==cem.id){a={id:Date.now().toString(36),name:'',cem:cem.id,ids:[],done:[],saved:false,manual:false};l.push(a)}
+  a=l.find(x=>x.id===a.id);a.ids.push(cur.id);R.write(l);try{localStorage.setItem('gmActive',a.id)}catch{}
+  visitBtn();toast('נוסף לביקור המשפחתי. לחיצה נוספת על הכפתור תפתח את הביקור')};
 $('photoIn').onchange=async e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f||!cur)return;
   toast('מעלים את התמונה…');
