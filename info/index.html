@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<script src="/shabbat.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<title>מידע שימושי – Grave Marker</title>
+<meta name="description" content="שעות פתיחה, ברזיות, שירותים וחניה בבית העלמין">
+<meta name="theme-color" content="#1f5b57">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#f4f1ec;--card:#fffdf9;--ink:#23262b;--mute:#6d6a64;--line:#e2ddd4;--acc:#1f5b57}
+@media (prefers-color-scheme:dark){:root{--bg:#15181b;--card:#1e2226;--ink:#ece9e3;--mute:#a19d95;--line:#30353a;--acc:#5fb3aa}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,Arial,sans-serif}
+header{background:#1f5b57;color:#fff;padding:14px 16px}
+header .row{max-width:600px;margin:0 auto;display:flex;gap:10px;align-items:center}
+header h1{font-size:20px;margin:0}header small{display:block;opacity:.85;font-size:13px}
+header a{color:#fff;text-decoration:none;font-size:22px}
+.wrap{max-width:600px;margin:0 auto;padding:12px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;gap:12px;align-items:center}
+.card .ic{font-size:26px}.card .t{flex:1;min-width:0}.card b{display:block}.card small{color:var(--mute)}
+.go{background:var(--acc);color:#fff;border-radius:9px;padding:7px 12px;text-decoration:none;font-size:14px}
+#map{height:280px;border-radius:12px;overflow:hidden;margin-bottom:10px}
+.empty{color:var(--mute);text-align:center;padding:24px}
+footer{text-align:center;color:var(--mute);font-size:13px;padding-top:16px}footer a{color:var(--mute)}
+</style>
+</head>
+<body>
+<header><div class="row"><a href="/" aria-label="חזרה">→</a><div><h1>מידע שימושי</h1><small id="cemName"></small></div></div></header>
+<div class="wrap">
+  <div id="hours"></div>
+  <div id="map"></div>
+  <div id="list"><p class="empty">טוען…</p></div>
+  <footer><a href="/">חיפוש קבר</a> · <a href="/download/">הורדת האפליקציה</a><div>נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const SB='https://vqydrrhgklikhfdsgrwr.supabase.co', KEY='sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C';
+const api=p=>fetch(`${SB}/rest/v1/${p}&apikey=${KEY}`).then(r=>r.ok?r.json():[]);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PLACE={wash:['🚰','ברזייה לנטילת ידיים'],tap:['🪣','ברז לשטיפת קבר'],wc:['🚻','שירותים'],parking:['🅿️','חניה'],entrance:['🚪','כניסה'],office:['🏢','משרד'],shade:['🌳','צל וספסל']};
+const ORDER=['entrance','parking','wash','tap','wc','office','shade'];
+let cemId=new URLSearchParams(location.search).get('c'); try{cemId=cemId||JSON.parse(localStorage.getItem('cem'))}catch{} cemId=cemId||'ofakim';
+(async()=>{
+  const [[c],places]=await Promise.all([api(`cemeteries?id=eq.${encodeURIComponent(cemId)}&select=id,name,center_lat,center_lng,hours`),api(`cemetery_places?cemetery_id=eq.${encodeURIComponent(cemId)}&select=kind,lat,lng,note`)]);
+  if(!c){$('list').innerHTML='<p class="empty">לא מצאנו את בית העלמין.</p>';return}
+  $('cemName').textContent=c.name;
+  if(c.hours)$('hours').innerHTML=`<div class="card"><span class="ic">🕐</span><span class="t"><b>שעות פתיחה</b><small style="white-space:pre-line">${esc(c.hours)}</small></span></div>`;
+  const map=L.map('map',{zoomControl:false}).setView([c.center_lat,c.center_lng],17);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:21,maxNativeZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+  const draw=me=>{places.sort((a,b)=>me?map.distance(me,[a.lat,a.lng])-map.distance(me,[b.lat,b.lng]):ORDER.indexOf(a.kind)-ORDER.indexOf(b.kind));
+    $('list').innerHTML=places.length?places.map(p=>{const [ic,n]=PLACE[p.kind]||['📍',p.kind];const d=me?Math.round(map.distance(me,[p.lat,p.lng])/5)*5:null;
+      return `<div class="card"><span class="ic">${ic}</span><span class="t"><b>${n}</b><small>${[d!=null&&d<2000?d+" מ' ממך":'',esc(p.note||'')].filter(Boolean).join(' · ')}</small></span>
+      <a class="go" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=walking">ניווט</a></div>`}).join('')
+      :'<p class="empty">עוד לא סומנו נקודות שימושיות בבית העלמין הזה.</p>'};
+  for(const p of places){const [ic,n]=PLACE[p.kind]||['📍',p.kind];
+    L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html:`<div style="font-size:16px;width:28px;height:28px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 4px #0008">${ic}</div>`,iconSize:[28,28],iconAnchor:[14,14]})}).addTo(map).bindTooltip(n)}
+  if(places.length>1)map.fitBounds(L.latLngBounds(places.map(p=>[p.lat,p.lng])),{padding:[30,30],maxZoom:19});
+  if(!places.length)$('map').style.display='none';
+  draw(null);
+  navigator.geolocation?.getCurrentPosition(p=>draw([p.coords.latitude,p.coords.longitude]),()=>{},{maximumAge:60000,timeout:8000});
+})();
+</script>
+</body>
+</html>
