@@ -2,7 +2,7 @@
 (()=>{
 // השמעה כבויה: אי אפשר להבטיח קול גברי מקולות המכשיר. תופעל עם הקלטות בקול גברי בלבד.
 const SPEAK=false;   // יודלק אחרי שפונקציית tts תעלה
-const TTS='https://vqydrrhgklikhfdsgrwr.supabase.co/functions/v1/tts', TTS_KEY='sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C';
+const TTS='https://vqydrrhgklikhfdsgrwr.supabase.co/functions/v1/smooth-handler', TTS_KEY='sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C';
 const DAG='ּ', SHIN='ׁ', SIN='ׂ', HOLAM='ֹ', HOLAM_V='ֺ', SHVA='ְ';
 const V={'ַ':'a','ָ':'a','ֲ':'a','ֶ':'e','ֵ':'e','ֱ':'e','ִ':'i','ֹ':'o','ֺ':'o','ֳ':'o','ֻ':'u','ׇ':'o'};
 const isL=c=>c>='א'&&c<='ת';
