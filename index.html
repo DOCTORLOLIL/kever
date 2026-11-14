@@ -162,7 +162,7 @@ h3.grp{font-size:15px;color:var(--mute);margin:18px 2px 8px}
       <div><small>שורה</small><b id="dRow">—</b></div>
       <div><small>קבר</small><b id="dGrave">—</b></div>
     </div>
-    <div class="yz" id="yz"><div><small>יום השנה הבא</small><b id="yzDate"></b><span id="yzSub"></span></div><button class="btn sec" id="bCal">הוספה ליומן</button></div>
+    <div class="yz" id="yz"><div><small>יום השנה הבא</small><b id="yzDate"></b><span id="yzSub"></span></div><div style="display:flex;flex-direction:column;gap:6px"><button class="btn sec" id="bCal">הוספה ליומן</button><a class="btn" id="bAz" style="text-decoration:none;text-align:center">🕯️ תיאום אזכרה</a></div></div>
     <div class="photos" id="photos"></div>
     <div class="ask hide" id="askLoc">
       <div><b>עומדים ממש ליד הקבר?</b> שמרו את המיקום המדויק שלו, כדי שהבאים אחריכם יגיעו ישר אליו.</div>
@@ -453,6 +453,7 @@ let yzList=[];
 function showYahrzeit(r){
   yzList=[]; $('yz').classList.add('hide'); if(!r.death_date||typeof HebCal==='undefined')return;
   const [y,m,d]=r.death_date.split('-').map(Number); yzList=HebCal.nextYahrzeits(new Date(y,m-1,d),5);
+  try{const z=yzList[0].date,q=n=>String(n).padStart(2,'0');$('bAz').href=`/a/?c=${encodeURIComponent(cem.id)}&d=${r.id}&y=${z.getFullYear()}-${q(z.getMonth()+1)}-${q(z.getDate())}`}catch{}
   const z=yzList[0]; if(!z)return;
   $('yzDate').textContent=HebCal.fmt(z);
   $('yzSub').textContent=`יום ${DOW[z.date.getDay()]}, ${dmy(z.date)} · מתחיל בערב שלפני`;

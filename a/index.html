@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<title>אזכרה – Grave Marker</title>
+<meta name="description" content="הזמנה לאזכרה בבית העלמין, עם ניווט עד הקבר">
+<meta name="theme-color" content="#2B1E00">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#f4f1ec;--card:#fffdf9;--ink:#23262b;--mute:#6d6a64;--line:#e2ddd4;--acc:#1f5b57;--acc2:#e9f1ef;--gold:#E0A83A;--bad:#b3412f}
+@media (prefers-color-scheme:dark){:root{--bg:#15181b;--card:#1e2226;--ink:#ece9e3;--mute:#a19d95;--line:#30353a;--acc:#5fb3aa;--acc2:#1f2d2c;--bad:#e07a66}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,Arial,sans-serif}
+header{background:#2B1E00;color:#fff;padding:14px 16px}
+header .row{max-width:560px;margin:0 auto;display:flex;gap:10px;align-items:center}
+header h1{font-size:19px;margin:0}header small{display:block;opacity:.85;font-size:13px}
+header a{color:#fff;text-decoration:none;font-size:22px}
+.wrap{max-width:560px;margin:0 auto;padding:14px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.big{font-size:19px;font-weight:700}
+.mute{color:var(--mute);font-size:14px}
+.lbl{font-size:13px;color:var(--mute);margin:12px 0 5px}
+.opt{display:block;width:100%;text-align:start;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:6px;font:inherit;color:inherit;cursor:pointer}
+.opt.on{border-color:var(--acc)}.opt small{display:block;color:var(--mute)}
+input,textarea{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.seg{display:flex;gap:6px}.seg .opt{flex:1;text-align:center;margin:0}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:13px;background:var(--acc);color:#fff;font:inherit;font-weight:700;font-size:16px;cursor:pointer;text-align:center;text-decoration:none;margin-top:8px}
+.btn.sec{background:var(--acc2);color:var(--acc);font-weight:500;font-size:15px}
+.btn.wa{background:#25D366}
+.two{display:flex;gap:8px}.two .btn{flex:1}
+.banner{background:var(--gold);color:#2B1E00;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;margin-bottom:10px;font-size:14px}
+.banner a{background:#2B1E00;color:#fff;border-radius:9px;padding:8px 12px;text-decoration:none;font-weight:700}
+.err{color:var(--bad)}
+footer{text-align:center;color:var(--mute);font-size:13px;padding-top:16px}footer a{color:var(--mute)}
+</style>
+</head>
+<body>
+<header><div class="row"><a href="/" aria-label="חזרה">→</a><div><h1 id="h1">🕯️ אזכרה</h1><small id="h2"></small></div></div></header>
+<div class="wrap">
+  <div class="banner" id="appBanner" hidden><span style="font-size:22px">📱</span><span style="flex:1">באפליקציה: ניווט עד הקבר ותזכורת ליום השנה.</span><a href="/download/">הורדה</a></div>
+  <div id="main"><p class="mute">טוען…</p></div>
+  <footer><a href="/">חיפוש קבר</a> · <a href="/download/">הורדת האפליקציה</a><div>נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
+</div>
+<script src="/hebcal.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const SB='https://vqydrrhgklikhfdsgrwr.supabase.co', KEY='sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C';
+const api=p=>fetch(`${SB}/rest/v1/${p}&apikey=${KEY}`).then(r=>r.ok?r.json():[]);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const p2=n=>String(n).padStart(2,'0');
+const DOW=['יום א\'','יום ב\'','יום ג\'','יום ד\'','יום ה\'','יום ו\'','שבת'];
+const dmy=d=>`${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()}`;
+const dayLine=d=>{const h=HebCal.toHeb(d);return `${DOW[d.getDay()]} ${dmy(d)} · ${HebCal.gem(h.day)} ${h.month}`};
+const iso=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+const fullName=d=>[d.first_name,d.last_name].filter(Boolean).join(' ');
+const loc=d=>[d.plot&&'חלקה '+d.plot,d.row_no&&'שורה '+d.row_no,d.grave_no&&'קבר '+d.grave_no].filter(Boolean).join(' · ');
+$('appBanner').hidden=!/Android/i.test(navigator.userAgent);
+
+const sp=new URLSearchParams(location.search);
+let D=null, C=null;
+(async()=>{
+  const id=+sp.get('d'), c=sp.get('c');
+  if(!id||!c){$('main').innerHTML='<p class="err">הקישור חסר. פתחו את כרטיס הנפטר ולחצו "תיאום אזכרה".</p>';return}
+  [D]=await api(`deceased?id=eq.${id}&select=id,first_name,last_name,father_name,mother_name,plot,row_no,grave_no`);
+  [C]=await api(`cemeteries?id=eq.${encodeURIComponent(c)}&select=id,name,town,center_lat,center_lng`);
+  if(!D||!C){$('main').innerHTML='<p class="err">לא מצאנו את הנפטר. ייתכן שהקישור שגוי.</p>';return}
+  sp.get('t')?invite():form();
+})();
+
+// ---------- הזמנה ----------
+function invite(){
+  const t=new Date(sp.get('t')), atGrave=sp.get('p')!=='e', note=sp.get('m')||'', name=fullName(D);
+  document.title=`אזכרה ל${name} ז"ל`;
+  $('h1').textContent=`🕯️ אזכרה ל${name} ז"ל`;$('h2').textContent='הזמנה לבני המשפחה';
+  const past=t<new Date(Date.now()-3*3600e3);
+  $('main').innerHTML=`<div class="card"><div class="big">${esc(dayLine(t))}, ${p2(t.getHours())}:${p2(t.getMinutes())}</div>
+    ${past?'<div class="err">האזכרה כבר התקיימה</div>':''}
+    <div style="margin-top:8px">📍 ${atGrave?'ליד הקבר':'בכניסה לבית העלמין'} – ${esc(C.name)}</div>
+    ${atGrave?`<div class="mute">${esc(loc(D))}</div>`:''}${note?`<div class="mute" style="margin-top:8px">${esc(note)}</div>`:''}</div>
+    <a class="btn" href="/?c=${encodeURIComponent(C.id)}&d=${D.id}">🧭 ניווט עד הקבר</a>
+    <div class="two"><button class="btn sec" id="bCal">📅 הוספה ליומן</button><a class="btn sec" id="bTef">📖 תפילון</a></div>
+    <a class="btn sec" href="https://waze.com/ul?ll=${C.center_lat},${C.center_lng}&navigate=yes" target="_blank" rel="noopener">🚗 נסיעה לבית העלמין</a>`;
+  $('bTef').href='/tefilon/?'+new URLSearchParams({n:D.first_name||'',p:D.mother_name||D.father_name||'',t:D.mother_name?'m':'f'});
+  $('bCal').onclick=()=>{const f=x=>`${x.getFullYear()}${p2(x.getMonth()+1)}${p2(x.getDate())}T${p2(x.getHours())}${p2(x.getMinutes())}00`,e=new Date(t.getTime()+3600e3);
+    const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Grave Marker//HE','BEGIN:VEVENT',`UID:az-${D.id}-${f(t)}@gravemarker.bulu.ltd`,`DTSTAMP:${f(new Date())}`,
+      `DTSTART:${f(t)}`,`DTEND:${f(e)}`,`SUMMARY:אזכרה ל${name} ז"ל`,`LOCATION:${C.name}${atGrave?', '+loc(D):''}`,
+      `DESCRIPTION:${note?note+'\\n':''}${location.href}`,'BEGIN:VALARM','TRIGGER:-PT2H','ACTION:DISPLAY',`DESCRIPTION:אזכרה ל${name}`,'END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'}));a.download='azkara.ics';a.click()};
+}
+
+// ---------- טופס ----------
+function form(){
+  const name=fullName(D);
+  $('h1').textContent='🕯️ תיאום אזכרה';$('h2').textContent=`לעילוי נשמת ${name} ז"ל`;
+  const y=sp.get('y')?new Date(sp.get('y')+'T00:00'):new Date();
+  const fri=new Date(y);fri.setDate(y.getDate()-((y.getDay()-5+7)%7));
+  const sun=new Date(y);sun.setDate(y.getDate()+((7-y.getDay())%7));
+  const opts=[];if(y.getDay()!==6)opts.push(['יום השנה',y]);if(+fri!==+y)opts.push(["יום ו' שלפני",fri]);if(+sun!==+y)opts.push(["יום א' שאחרי",sun]);
+  let day=opts[0][1], atGrave=true;
+  $('main').innerHTML=`<div class="lbl">תאריך</div><div id="days"></div>
+    <input type="date" id="other" min="${iso(new Date())}" aria-label="תאריך אחר"><div id="shab" class="err"></div>
+    <div class="lbl">שעה</div><input type="time" id="time" value="16:00">
+    <div class="lbl">מקום מפגש</div><div class="seg"><button class="opt on" id="pG">ליד הקבר</button><button class="opt" id="pE">בכניסה לבית העלמין</button></div>
+    <div class="lbl">הערה (לא חובה)</div><textarea id="note" maxlength="200" rows="2" placeholder="למשל: מניין לקדיש, אחר כך סעודה"></textarea>
+    <a class="btn wa" id="bWa">שליחה בוואטסאפ</a>
+    <div class="two"><a class="btn sec" id="bMail">✉️ מייל</a><button class="btn sec" id="bMore">📤 עוד</button></div>
+    <a class="btn sec" id="bPrev">👁️ תצוגה של ההזמנה</a>`;
+  const draw=()=>{$('days').innerHTML=opts.map(([l,d],i)=>`<button class="opt ${+d===+day?'on':''}" data-i="${i}"><b>${esc(dayLine(d))}</b><small>${l}</small></button>`).join('');
+    $('shab').textContent=day.getDay()===6?'היום שנבחר הוא שבת. בחרו יום אחר.':'';update()};
+  $('days').onclick=e=>{const b=e.target.closest('[data-i]');if(b){day=opts[+b.dataset.i][1];$('other').value='';draw()}};
+  $('other').onchange=e=>{if(e.target.value){day=new Date(e.target.value+'T00:00');draw()}};
+  $('pG').onclick=()=>{atGrave=true;$('pG').classList.add('on');$('pE').classList.remove('on');update()};
+  $('pE').onclick=()=>{atGrave=false;$('pE').classList.add('on');$('pG').classList.remove('on');update()};
+  $('time').oninput=$('note').oninput=update;
+  function link(){const q=new URLSearchParams({c:C.id,d:D.id,t:`${iso(day)}T${$('time').value||'16:00'}`,p:atGrave?'g':'e'});const m=$('note').value.trim();if(m)q.set('m',m);return `${location.origin}/a/?${q}`}
+  function text(){const [h,mi]=($('time').value||'16:00').split(':');return [`אזכרה ל${name} ז"ל`,`${dayLine(day)}, ${h}:${mi}`,
+    `📍 ${atGrave?'ליד הקבר':'בכניסה לבית העלמין'} – ${C.name}${atGrave?', '+loc(D):''}`,$('note').value.trim(),link()].filter(Boolean).join('\n')}
+  function update(){const bad=day.getDay()===6;
+    $('bWa').href=bad?'#':'https://wa.me/?text='+encodeURIComponent(text());
+    $('bMail').href=bad?'#':`mailto:?subject=${encodeURIComponent('אזכרה ל'+name+' ז"ל')}&body=${encodeURIComponent(text())}`;
+    $('bPrev').href=link();for(const b of ['bWa','bMail','bMore'])$(b).style.opacity=bad?.4:1}
+  $('bMore').hidden=!navigator.share;
+  $('bMore').onclick=async()=>{if(day.getDay()===6)return;try{await navigator.share({title:'אזכרה ל'+name,text:text()})}catch{}};
+  draw();
+}
+</script>
+</body>
+</html>
