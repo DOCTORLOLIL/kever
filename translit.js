@@ -1,7 +1,7 @@
 // Grave Marker – תעתיק של טקסט מנוקד לאותיות לועזיות/קיריליות, והשמעה בקול
 (()=>{
 const DAG='ּ', SHIN='ׁ', SIN='ׂ', HOLAM='ֹ', HOLAM_V='ֺ', SHVA='ְ';
-const V={'ַ':'a','ָ':'a','ֲ':'a','ֶ':'e','ֵ':'e','ֱ':'e','ִ':'i','ֹ':'o','ֺ':'o','ֳ':'o','ֻ':'u'};
+const V={'ַ':'a','ָ':'a','ֲ':'a','ֶ':'e','ֵ':'e','ֱ':'e','ִ':'i','ֹ':'o','ֺ':'o','ֳ':'o','ֻ':'u','ׇ':'o'};
 const isL=c=>c>='א'&&c<='ת';
 // סכמות: מה כותבים לכל צליל
 const S={
@@ -46,7 +46,7 @@ function word(w,sc){
   return out;
 }
 function translit(text,scheme='lat'){const sc=S[scheme]||S.lat;
-  const t=text.replace(/ה['׳](?=[\s,.:;]|$)/g,'יהוה').replace(/[֑-ֽֿ֯׀׃-׆]/g,m=>m==='־'?' ':'') // טעמים, מתג, פסק
+  const t=text.replace(/\s*\([^()]*\)/g,m=>/[\u05B0-\u05BB\u05C7]/.test(m)?m:'').replace(/ה['׳](?=[\s,.:;]|$)/g,'יהוה').replace(/[֑-ֽֿ֯׀׃-׆]/g,m=>m==='־'?' ':'') // טעמים, מתג, פסק
              .replace(/־/g,' ');
   const res=t.split(/(\s+|[.,:;!?״"'()\-–—]+)/).map(p=>/[א-ת]/.test(p)?word(p,sc):p).join('');
   return res.charAt(0).toUpperCase()+res.slice(1)}
