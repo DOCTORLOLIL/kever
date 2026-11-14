@@ -72,6 +72,8 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
 .prev{width:100%;border-collapse:collapse;font-size:13px}.prev td,.prev th{border:1px solid var(--line);padding:3px 5px;text-align:start}
 .prev tr.bad td{background:#c0392b22}
 .step{font-size:13px;color:var(--mute);margin-bottom:6px}
+#ppanel{position:fixed;left:0;right:0;bottom:0;z-index:1200;background:var(--card,#1e2226);padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.pin{font-size:18px;width:32px;height:32px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 4px #0008}
 </style>
 </head>
 <body>
@@ -89,6 +91,7 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
     <button class="t" id="bRep" hidden><span class="ic">📝</span><b>דיווחים <span class="badge" id="repBadge" hidden></span></b></button>
     <button class="t" id="bRev" hidden><span class="ic">🔎</span><b>רשומות לבדיקה <span class="badge" id="revBadge" hidden></span></b><small>חסרים ושגיאות מהרשימה</small></button>
     <button class="t" id="bImp" hidden><span class="ic">📥</span><b>ייבוא רשימת נפטרים</b><small>מקובץ Excel או CSV</small></button>
+    <button class="t" id="bPlaces" hidden><span class="ic">🚰</span><b>נקודות שימושיות</b><small>ברזיות, שירותים, חניה ושעות פתיחה</small></button>
     <button class="t" id="bCt" hidden><span class="ic">☎️</span><b>אנשי קשר</b></button>
     <button class="t" id="addEd" hidden><span class="ic">👤</span><b>מינוי עורך</b><small>למנהלים בלבד</small></button>
     <a class="t wide" href="/" target="_blank"><b>🌐 צפייה באתר הציבורי</b></a>
@@ -130,6 +133,19 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
     <button class="bad" id="bDel">מחק גבול</button>
   </div>
 </div>
+
+<div id="ppanel" hidden>
+  <div id="pmsg" style="font-size:14px;margin-bottom:6px">בחרו סוג, ואז הקישו על המפה במקום הנכון, או לחצו "המיקום שלי" כשאתם עומדים שם.</div>
+  <div class="chips" id="pKinds"></div>
+  <div class="row"><button class="pri" id="pHere">📍 המיקום שלי</button><button id="pHours">🕐 שעות פתיחה</button><button id="pDone">✓ סיום</button></div>
+</div>
+
+<div class="dlg" id="dHours"><div class="box">
+  <h3>שעות פתיחה</h3>
+  <textarea id="hoursIn" rows="4" style="width:100%;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)" placeholder="למשל: א'–ה' 7:00–18:00 · ו' 7:00–13:00 · שבת וחג: סגור"></textarea>
+  <div id="hoursMsg" style="font-size:14px;min-height:18px;margin:6px 0"></div>
+  <div class="row"><button class="ok" id="hoursSave">שמירה</button><button id="hoursClose">סגירה</button></div>
+</div></div>
 
 <div class="dlg" id="dLogin"><div class="box">
   <h3>כניסה לעורכים</h3>
@@ -482,7 +498,7 @@ async function login(){
 async function afterLogin(){
   const {data}=await sb.from('editors').select('*').eq('user_id',user.id).maybeSingle();
   if(!data){$('dLogin').classList.add('show');$('lMsg').textContent='המשתמש לא מורשה לעריכה (חסר בטבלת editors).';return}
-  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; $('bStat').hidden=false; $('bAdd').hidden=false; repCount(); revCount(); statLoad(); await loadCems();
+  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; $('bStat').hidden=false; $('bAdd').hidden=false; $('bPlaces').hidden=false; repCount(); revCount(); statLoad(); await loadCems();
 }
 async function addEditor(){
   const name=$('eName').value.trim(), email=$('eEmail').value.trim().toLowerCase(), pass=$('ePass').value;
@@ -811,6 +827,36 @@ $('aSave').onclick=async()=>{
   aStopGps();$('dAdd').classList.remove('show');revCount();
   await ask('נשמר ✓',`${row.last_name||''} ${row.first_name||''} נוסף/ה לבית העלמין${aLoc?' עם מיקום מדויק':''}. מופיע באתר ובאפליקציה מיד.`);
 };
+
+// ---------- נקודות שימושיות ----------
+const PLACE_KINDS={wash:['🚰','ברזייה לנטילת ידיים'],tap:['🪣','ברז לשטיפת קבר'],wc:['🚻','שירותים'],parking:['🅿️','חניה'],entrance:['🚪','כניסה'],office:['🏢','משרד'],shade:['🌳','צל וספסל']};
+let placeMode=false, placeKind='wash', places=[];
+const placeLayer=L.layerGroup().addTo(map);
+async function loadPlaces(){if(DEMO)return;const {data}=await sb.from('cemetery_places').select('*').eq('cemetery_id',$('cem').value);places=data||[];drawPlaces()}
+function drawPlaces(){placeLayer.clearLayers();
+  for(const p of places){const [ic,name]=PLACE_KINDS[p.kind]||['📍',p.kind];
+    L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html:`<div class="pin">${ic}</div>`,iconSize:[32,32],iconAnchor:[16,16]})})
+      .addTo(placeLayer).on('click',async()=>{if(!placeMode)return;
+        if(await ask(`למחוק את הנקודה "${name}"?`,p.note||'')){const {error}=await sb.from('cemetery_places').delete().eq('id',p.id);if(!error){places=places.filter(x=>x.id!==p.id);drawPlaces()}}})
+      .bindTooltip(name+(p.note?' – '+p.note:''))}}
+async function addPlace(lat,lng){
+  const [ic,name]=PLACE_KINDS[placeKind];
+  const note=prompt(`${ic} ${name}\nהערה (לא חובה), למשל "ליד חלקה 4":`,'');if(note===null)return;
+  const {data,error}=await sb.from('cemetery_places').insert({cemetery_id:$('cem').value,kind:placeKind,lat,lng,note:note.trim()||null}).select().single();
+  if(error){$('pmsg').textContent='השמירה נכשלה: '+error.message;return}
+  places.push(data);drawPlaces();$('pmsg').textContent=`✓ נשמר: ${name}. אפשר להוסיף עוד.`}
+map.on('click',e=>{if(placeMode)addPlace(e.latlng.lat,e.latlng.lng)});
+$('pKinds').innerHTML=Object.entries(PLACE_KINDS).map(([k,[ic,n]])=>`<button data-k="${k}" class="${k===placeKind?'sel':''}">${ic} ${n}</button>`).join('');
+$('pKinds').onclick=e=>{const b=e.target.closest('button');if(!b)return;placeKind=b.dataset.k;$('pKinds').querySelectorAll('button').forEach(x=>x.classList.toggle('sel',x===b))};
+$('pHere').onclick=()=>{$('pmsg').textContent='מחפש מיקום…';navigator.geolocation.getCurrentPosition(p=>{
+    if(p.coords.accuracy>20){$('pmsg').textContent=`הדיוק נמוך (${Math.round(p.coords.accuracy)} מ'). נסו שוב בעוד רגע, או הקישו על המפה.`;return}
+    addPlace(p.coords.latitude,p.coords.longitude)},()=>{$('pmsg').textContent='אין גישה למיקום. אפשר להקיש על המפה.'},{enableHighAccuracy:true,timeout:15000,maximumAge:0})};
+$('bPlaces').onclick=async()=>{placeMode=true;$('ehome').classList.add('off');$('panel').style.display='none';$('ppanel').hidden=false;map.invalidateSize();await loadPlaces()};
+$('pDone').onclick=()=>{placeMode=false;$('ppanel').hidden=true;$('panel').style.display='';$('ehome').classList.remove('off')};
+$('pHours').onclick=async()=>{const {data}=await sb.from('cemeteries').select('hours').eq('id',$('cem').value).single();$('hoursIn').value=data?.hours||'';$('hoursMsg').textContent='';$('dHours').classList.add('show')};
+$('hoursSave').onclick=async()=>{const {error}=await sb.from('cemeteries').update({hours:$('hoursIn').value.trim()||null}).eq('id',$('cem').value);
+  $('hoursMsg').textContent=error?'השמירה נכשלה: '+error.message:'✓ נשמר';$('hoursMsg').style.color=error?'var(--bad)':'var(--ok)'};
+$('hoursClose').onclick=()=>$('dHours').classList.remove('show');
 document.addEventListener('visibilitychange',async()=>{if(walking&&document.visibilityState==='visible'){try{wake=await navigator.wakeLock?.request('screen')}catch{}}});
 
 (async()=>{
