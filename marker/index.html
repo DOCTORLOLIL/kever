@@ -74,6 +74,13 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
 .step{font-size:13px;color:var(--mute);margin-bottom:6px}
 #ppanel{position:fixed;left:0;right:0;bottom:0;z-index:1200;background:var(--card,#1e2226);padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
 .pin{font-size:18px;width:32px;height:32px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 4px #0008}
+#vacBody table{width:100%;border-collapse:collapse;font-size:14px}#vacBody td,#vacBody th{border-bottom:1px solid var(--line);padding:6px;text-align:start}
+#vacBody tr.pl{cursor:pointer}#vacBody tr.pl:hover{background:var(--bg)}
+.vgrid{display:flex;flex-direction:row;gap:4px;overflow-x:auto;padding:6px 0;direction:rtl}
+.vcol{display:flex;flex-direction:column;gap:3px;align-items:center}.vcol .h{font-size:11px;color:var(--mute);white-space:nowrap}
+.vc{width:30px;height:24px;border-radius:5px;font-size:11px;display:grid;place-items:center;cursor:default}
+.vc.t{background:#5b6470;color:#fff}.vc.f{border:2px solid #2e9d5b;color:#2e9d5b;font-weight:700}.vc.m{background:#c0392b;color:#fff}
+.vleg{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;margin:6px 0}.vleg span{display:flex;gap:5px;align-items:center}
 </style>
 </head>
 <body>
@@ -92,6 +99,7 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
     <button class="t" id="bRev" hidden><span class="ic">🔎</span><b>רשומות לבדיקה <span class="badge" id="revBadge" hidden></span></b><small>חסרים ושגיאות מהרשימה</small></button>
     <button class="t" id="bImp" hidden><span class="ic">📥</span><b>ייבוא רשימת נפטרים</b><small>מקובץ Excel או CSV</small></button>
     <button class="t" id="bPlaces" hidden><span class="ic">🚰</span><b>נקודות שימושיות</b><small>ברזיות, שירותים, חניה ושעות פתיחה</small></button>
+    <button class="t" id="bVac" hidden><span class="ic">🟩</span><b>קברים פנויים</b><small>לפי הרשימה, בכל חלקה</small></button>
     <button class="t" id="bCt" hidden><span class="ic">☎️</span><b>אנשי קשר</b></button>
     <button class="t" id="addEd" hidden><span class="ic">👤</span><b>מינוי עורך</b><small>למנהלים בלבד</small></button>
     <a class="t wide" href="/" target="_blank"><b>🌐 צפייה באתר הציבורי</b></a>
@@ -246,6 +254,12 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
   </div>
   <div id="aMsg" style="font-size:14px;min-height:20px;margin:8px 0"></div>
   <div class="row"><button class="ok" id="aSave">שמירה</button><button id="aCancel">ביטול</button></div>
+</div></div>
+
+<div class="dlg" id="dVac"><div class="box" style="max-width:900px;max-height:92vh;overflow:auto">
+  <h3 id="vacTitle">קברים פנויים</h3>
+  <div id="vacBody">טוען…</div>
+  <div class="row" style="margin-top:10px"><button id="vacBack" hidden>→ כל החלקות</button><button id="vacClose">סגירה</button></div>
 </div></div>
 
 <div class="dlg" id="dAsk"><div class="box">
@@ -498,7 +512,7 @@ async function login(){
 async function afterLogin(){
   const {data}=await sb.from('editors').select('*').eq('user_id',user.id).maybeSingle();
   if(!data){$('dLogin').classList.add('show');$('lMsg').textContent='המשתמש לא מורשה לעריכה (חסר בטבלת editors).';return}
-  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; $('bStat').hidden=false; $('bAdd').hidden=false; $('bPlaces').hidden=false; repCount(); revCount(); statLoad(); await loadCems();
+  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; $('bStat').hidden=false; $('bAdd').hidden=false; $('bPlaces').hidden=false; $('bVac').hidden=false; repCount(); revCount(); statLoad(); await loadCems();
 }
 async function addEditor(){
   const name=$('eName').value.trim(), email=$('eEmail').value.trim().toLowerCase(), pass=$('ePass').value;
@@ -857,6 +871,37 @@ $('pHours').onclick=async()=>{const {data}=await sb.from('cemeteries').select('h
 $('hoursSave').onclick=async()=>{const {error}=await sb.from('cemeteries').update({hours:$('hoursIn').value.trim()||null}).eq('id',$('cem').value);
   $('hoursMsg').textContent=error?'השמירה נכשלה: '+error.message:'✓ נשמר';$('hoursMsg').style.color=error?'var(--bad)':'var(--ok)'};
 $('hoursClose').onclick=()=>$('dHours').classList.remove('show');
+
+// ---------- קברים פנויים (לפי הרשימה) ----------
+let vacData=null;
+async function vacLoad(){const cem=$('cem').value, all=[];
+  for(let f=0;;f+=1000){const {data}=await sb.from('deceased').select('gush,plot,row_no,grave_no,first_name,last_name,death_date').eq('cemetery_id',cem).order('id').range(f,f+999);
+    all.push(...(data||[]));if(!data||data.length<1000)break}
+  const P={};
+  for(const d of all){if(!d.plot)continue;const k=(d.gush||'1')+'/'+d.plot;const p=P[k]=P[k]||{gush:d.gush||'1',plot:d.plot,cells:{},total:0,noLoc:0};p.total++;
+    const r=+d.row_no,g=+d.grave_no;if(!Number.isInteger(r)||!Number.isInteger(g)||r<1||g<1||r>200||g>400){p.noLoc++;continue}
+    (p.cells[r+':'+g]=p.cells[r+':'+g]||[]).push(d)}
+  for(const p of Object.values(P)){let R=0,G=0;for(const k in p.cells){const [r,g]=k.split(':').map(Number);R=Math.max(R,r);G=Math.max(G,g)}
+    p.rows=R;p.graves=G;
+    // רוחב כל שורה: עד הקבר הגבוה בשורה, או עד הגבוה בחלקה כשהשורה נראית מלאה
+    p.free=0;p.rowLen={};for(let r=1;r<=R;r++){let m=0;for(let g=1;g<=G;g++)if(p.cells[r+':'+g])m=g;p.rowLen[r]=m;for(let g=1;g<=m;g++)if(!p.cells[r+':'+g])p.free++}
+    p.multi=Object.values(p.cells).filter(c=>c.length>1).length}
+  vacData=Object.values(P).sort((a,b)=>(a.gush+a.plot).localeCompare(b.gush+b.plot,'he',{numeric:true}))}
+function vacSummary(){$('vacTitle').textContent='קברים פנויים – לפי הרשימה';$('vacBack').hidden=true;
+  $('vacBody').innerHTML=`<p style="font-size:13px;color:var(--mute);margin:0 0 8px">"פנוי" = מספר קבר שחסר ברשימה בתוך שורה. ייתכן שבפועל הוא תפוס ולא נרשם, או שהוא שביל. לחיצה על חלקה מציגה את הקברים.</p>
+  <table><tr><th>חלקה</th><th>שורות</th><th>רשומים</th><th>פנויים ברשימה</th><th>כפולים</th><th>בלי מיקום</th></tr>${vacData.map((p,i)=>`<tr class="pl" data-i="${i}"><td><b>${p.gush!=='1'?p.gush+'/':''}${escH(p.plot)}</b></td><td>${p.rows}</td><td>${p.total}</td><td style="color:${p.free?'#2e9d5b':'inherit'};font-weight:${p.free?700:400}">${p.free}</td><td>${p.multi||''}</td><td>${p.noLoc||''}</td></tr>`).join('')}</table>`;
+  $('vacBody').querySelectorAll('tr.pl').forEach(tr=>tr.onclick=()=>vacPlot(vacData[+tr.dataset.i]))}
+function vacPlot(p){$('vacTitle').textContent=`חלקה ${p.gush!=='1'?p.gush+'/':''}${p.plot} – ${p.free} פנויים ברשימה`;$('vacBack').hidden=false;
+  let html=`<div class="vleg"><span><i class="vc t"></i>תפוס</span><span><i class="vc f"></i>פנוי ברשימה</span><span><i class="vc m"></i>יותר מנפטר אחד</span></div><div class="vgrid">`;
+  for(let r=1;r<=p.rows;r++){html+=`<div class="vcol"><span class="h">שורה ${r}</span>`;
+    for(let g=1;g<=Math.max(p.rowLen[r],1);g++){const c=p.cells[r+':'+g];
+      if(!c){html+= g<=p.rowLen[r]?`<span class="vc f" title="שורה ${r}, קבר ${g}: פנוי ברשימה">${g}</span>`:'';continue}
+      const names=c.map(d=>`${d.first_name||''} ${d.last_name||''}${d.death_date?' ('+d.death_date.slice(0,4)+')':''}`).join(' | ');
+      html+=`<span class="vc ${c.length>1?'m':'t'}" title="שורה ${r}, קבר ${g}: ${escH(names)}">${g}</span>`}
+    html+='</div>'}
+  $('vacBody').innerHTML=html+'</div><p style="font-size:13px;color:var(--mute)">השורות מסודרות מימין לשמאל, והקברים מלמעלה למטה, כמו במפה. ריחוף או לחיצה ארוכה על קבר מציגים את השם.</p>'}
+$('bVac').onclick=async()=>{$('dVac').classList.add('show');$('vacBody').textContent='טוען…';if(!vacData)await vacLoad();vacSummary()};
+$('vacBack').onclick=vacSummary;$('vacClose').onclick=()=>$('dVac').classList.remove('show');
 document.addEventListener('visibilitychange',async()=>{if(walking&&document.visibilityState==='visible'){try{wake=await navigator.wakeLock?.request('screen')}catch{}}});
 
 (async()=>{
