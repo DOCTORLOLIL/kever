@@ -1,5 +1,7 @@
 // Grave Marker – תעתיק של טקסט מנוקד לאותיות לועזיות/קיריליות, והשמעה בקול
 (()=>{
+// השמעה כבויה: אי אפשר להבטיח קול גברי מקולות המכשיר. תופעל עם הקלטות בקול גברי בלבד.
+const SPEAK=false;
 const DAG='ּ', SHIN='ׁ', SIN='ׂ', HOLAM='ֹ', HOLAM_V='ֺ', SHVA='ְ';
 const V={'ַ':'a','ָ':'a','ֲ':'a','ֶ':'e','ֵ':'e','ֱ':'e','ִ':'i','ֹ':'o','ֺ':'o','ֳ':'o','ֻ':'u','ׇ':'o'};
 const isL=c=>c>='א'&&c<='ת';
@@ -75,7 +77,7 @@ function attach({bar,items,root}){
   const box=document.createElement('span');box.className='gm-tools';
   const lang=(navigator.language||'').slice(0,2), def=lang==='ru'?'cyr':'lat';
   let mode=null;try{mode=localStorage.getItem('gmTr')}catch{} if(mode==='null')mode=null;
-  box.innerHTML=`<button type="button" id="gmSay">🔊 השמעה</button><button type="button" id="gmLat">Abc</button><button type="button" id="gmCyr">Абв</button>`;
+  box.innerHTML=`${SPEAK?'<button type="button" id="gmSay">🔊 השמעה</button>':''}<button type="button" id="gmLat">Abc</button><button type="button" id="gmCyr">Абв</button>`;
   host.prepend(box);
   const sel=()=>[...document.querySelectorAll(items)];
   let draw=()=>{document.querySelectorAll('.gm-tr').forEach(e=>e.remove());
@@ -83,7 +85,7 @@ function attach({bar,items,root}){
     if(!mode)return;for(const e of sel()){const d=document.createElement('div');d.className='gm-tr';d.textContent=translit(e.innerText,mode);e.after(d)}};
   const set=m=>{mode=mode===m?null:m;try{localStorage.setItem('gmTr',mode)}catch{}draw()};
   box.querySelector('#gmLat').onclick=()=>set('lat');box.querySelector('#gmCyr').onclick=()=>set('cyr');
-  box.querySelector('#gmSay').onclick=e=>speak(sel(),e.currentTarget);
+  if(SPEAK)box.querySelector('#gmSay').onclick=e=>speak(sel(),e.currentTarget);
   // כשהטקסט נטען/מתחלף – מעדכנים את התעתיק
   const r=document.querySelector(root||'body');
   const ob=new MutationObserver(()=>{ob.disconnect();draw();ob.observe(r,{childList:true})});
