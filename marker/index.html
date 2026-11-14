@@ -544,6 +544,8 @@ $('toMenu').onclick=()=>{if(walking)stopWalk();$('ehome').classList.remove('off'
 $('newCem').onclick=()=>$('dCem').classList.add('show'); $('cCancel').onclick=()=>$('dCem').classList.remove('show'); $('cGo').onclick=addCem;
 $('lGo').onclick=login; $('lPass').onkeydown=e=>{if(e.key==='Enter')login()};
 $('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
+const AI_READ=false;   // קריאת מצבות בבינה מלאכותית – מוקפא
+const toastE=t=>{const d=document.createElement('div');d.textContent=t;d.style.cssText='position:fixed;bottom:16px;left:16px;right:16px;z-index:3000;background:#23262b;color:#fff;padding:12px;border-radius:10px;font-size:14px';document.body.appendChild(d);setTimeout(()=>d.remove(),7000)};
 async function phCount(){const {count}=await sb.from('grave_photos').select('id',{count:'exact',head:true}).eq('status','pending');$('phBadge').textContent=count||'';$('phBadge').hidden=!count}
 async function phOpen(){
   $('dPh').classList.add('show'); $('phList').textContent='טוען…';
@@ -558,6 +560,9 @@ $('phList').onclick=async e=>{const b=e.target.closest('button[data-a]');if(!b)r
   const {error}=await sb.from('grave_photos').update({status:b.dataset.a}).eq('id',+it.dataset.id);
   if(error){alertMsg(it,error.message);return}
   if(b.dataset.a==='rejected')await sb.storage.from('grave-photos').remove([it.dataset.path]);
+  // קריאת המצבה (כבוי עד שיוגדר מפתח ל-Claude – ראו supabase/functions/README-ai.md)
+  if(b.dataset.a==='approved'&&AI_READ){try{const {data:r}=await sb.functions.invoke('read-headstone',{body:{photo_id:+it.dataset.id}});
+    if(r?.diffs?.length)toastE(`המצבה לא תואמת לרשומה: ${r.diffs.join('; ')}. נוסף ל"רשומות לבדיקה".`)}catch{}}
   it.remove(); phCount(); if(!$('phList').children.length)$('phList').textContent='אין תמונות שממתינות לאישור.'};
 function alertMsg(el,t){el.insertAdjacentHTML('beforeend',`<div style="color:var(--bad)">${t}</div>`)}
 $('bPh').onclick=phOpen;
@@ -593,7 +598,7 @@ $('addEd').onclick=()=>{$('eMsg').textContent='';$('dEd').classList.add('show')}
 $('eCancel').onclick=()=>$('dEd').classList.remove('show'); $('eGo').onclick=addEditor;
 // ---------- רשומות לבדיקה ----------
 const escH=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const REV_KINDS=[['','הכל'],['חסר מיקום','חסר מיקום'],['חסר שם פרטי','חסר שם פרטי'],['חסר תאריך','חסר תאריך'],['עוד נפטר','כמה נפטרים באותו קבר'],['לא במפה','חלקה לא במפה'],['לא תקני','מספר לא תקני'],['תאריך לועזי תוקן','תאריך שתוקן']];
+const REV_KINDS=[['','הכל'],['מצבה:','לא תואם למצבה'],['חסר מיקום','חסר מיקום'],['חסר שם פרטי','חסר שם פרטי'],['חסר תאריך','חסר תאריך'],['עוד נפטר','כמה נפטרים באותו קבר'],['לא במפה','חלקה לא במפה'],['לא תקני','מספר לא תקני'],['תאריך לועזי תוקן','תאריך שתוקן']];
 let revKind='', revFrom=0, revTimer=null;
 const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const hebOf=iso=>{if(!iso)return null;const [y,m,d]=iso.split('-').map(Number);try{return HebCal.fmt(HebCal.toHeb(new Date(y,m-1,d)))}catch{return null}};
