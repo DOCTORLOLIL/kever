@@ -1,7 +1,8 @@
 // Grave Marker – תעתיק של טקסט מנוקד לאותיות לועזיות/קיריליות, והשמעה בקול
 (()=>{
 // השמעה כבויה: אי אפשר להבטיח קול גברי מקולות המכשיר. תופעל עם הקלטות בקול גברי בלבד.
-const SPEAK=false;
+const SPEAK=false;   // יודלק אחרי שפונקציית tts תעלה
+const TTS='https://vqydrrhgklikhfdsgrwr.supabase.co/functions/v1/tts', TTS_KEY='sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C';
 const DAG='ּ', SHIN='ׁ', SIN='ׂ', HOLAM='ֹ', HOLAM_V='ֺ', SHVA='ְ';
 const V={'ַ':'a','ָ':'a','ֲ':'a','ֶ':'e','ֵ':'e','ֱ':'e','ִ':'i','ֹ':'o','ֺ':'o','ֳ':'o','ֻ':'u','ׇ':'o'};
 const isL=c=>c>='א'&&c<='ת';
@@ -54,17 +55,19 @@ function translit(text,scheme='lat'){const sc=S[scheme]||S.lat;
   return res.charAt(0).toUpperCase()+res.slice(1)}
 
 // ---------- השמעה ----------
-let speaking=false;
-function heVoice(){return speechSynthesis.getVoices().find(v=>/^(he|iw)/i.test(v.lang))}
+let speaking=false, audio=null;
+// קול גברי בלבד: קובצי קול שנוצרים בשרת. אין שימוש בקולות המכשיר.
+async function clip(text){const r=await fetch(TTS,{method:'POST',headers:{'content-type':'application/json',apikey:TTS_KEY},body:JSON.stringify({text})});
+  const j=await r.json();if(!r.ok||!j.url)throw new Error(j.error||'tts');return j.url}
 async function speak(els,btn){
-  if(speaking){speechSynthesis.cancel();speaking=false;btn.textContent='🔊 השמעה';els.forEach(e=>e.classList.remove('reading'));return}
-  if(!('speechSynthesis' in window)){alert('הדפדפן לא תומך בהשמעה.');return}
-  if(!speechSynthesis.getVoices().length)await new Promise(r=>{speechSynthesis.onvoiceschanged=r;setTimeout(r,1200)});
-  const v=heVoice();
-  if(!v){alert('לא נמצא קול בעברית במכשיר. אפשר להוריד "עברית" בהגדרות הטלפון: שפה, ואז המרת טקסט לדיבור.');return}
+  if(speaking){speaking=false;audio?.pause();btn.textContent='🔊 השמעה';els.forEach(e=>e.classList.remove('reading'));return}
   speaking=true;btn.textContent='⏹ עצירה';
-  for(const e of els){if(!speaking)break;e.classList.add('reading');e.scrollIntoView({behavior:'smooth',block:'center'});
-    await new Promise(res=>{const u=new SpeechSynthesisUtterance((e.dataset.say||e.innerText).replace(/[יי]?\u05B0?ה\u05B9?ו\u05B8?ה(?=[\s,.:;]|$)|יְהוָה|ה['׳](?=[\s,.:;]|$)/g,'אֲדֹנָי'));u.voice=v;u.lang=v.lang;u.rate=.85;u.onend=u.onerror=res;speechSynthesis.speak(u)});
+  let next=els.length?clip(els[0].dataset.say||els[0].innerText).catch(()=>null):null;
+  for(let i=0;i<els.length&&speaking;i++){const e=els[i];const url=await next;
+    next=i+1<els.length?clip(els[i+1].dataset.say||els[i+1].innerText).catch(()=>null):null;   // מכינים את הבא מראש
+    if(!url){if(i===0){alert('ההשמעה לא זמינה כרגע. נסו שוב מאוחר יותר.');break}continue}
+    e.classList.add('reading');e.scrollIntoView({behavior:'smooth',block:'center'});
+    await new Promise(res=>{audio=new Audio(url);audio.onended=audio.onerror=res;audio.play().catch(res)});
     e.classList.remove('reading')}
   speaking=false;btn.textContent='🔊 השמעה'}
 
