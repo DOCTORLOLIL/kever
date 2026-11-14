@@ -95,5 +95,7 @@ const sp=new URLSearchParams(location.search);
 $('name').value=sp.get('n')||''; $('parent').value=sp.get('p')||'';
 if(sp.get('g')==='F')$('gF').click(); else go();
 </script>
+<script src="/translit.js"></script>
+<script>GMTranslit.attach({bar:'.size',items:'#out .t',root:'#out'})</script>
 </body>
 </html>
