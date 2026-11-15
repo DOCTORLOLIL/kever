@@ -72,7 +72,7 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
 .prev{width:100%;border-collapse:collapse;font-size:13px}.prev td,.prev th{border:1px solid var(--line);padding:3px 5px;text-align:start}
 .prev tr.bad td{background:#c0392b22}
 .step{font-size:13px;color:var(--mute);margin-bottom:6px}
-#ppanel{position:fixed;left:0;right:0;bottom:0;z-index:1200;background:var(--card,#1e2226);padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+#ppanel,#tzpanel{position:fixed;left:0;right:0;bottom:0;z-index:1200;background:var(--card,#1e2226);padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
 .pin{font-size:18px;width:32px;height:32px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 1px 4px #0008}
 #vacBody table{width:100%;border-collapse:collapse;font-size:14px}#vacBody td,#vacBody th{border-bottom:1px solid var(--line);padding:6px;text-align:start}
 #vacBody tr.pl{cursor:pointer}#vacBody tr.pl:hover{background:var(--bg)}
@@ -99,6 +99,7 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
     <button class="t" id="bRev" hidden><span class="ic">🔎</span><b>רשומות לבדיקה <span class="badge" id="revBadge" hidden></span></b><small>חסרים ושגיאות מהרשימה</small></button>
     <button class="t" id="bImp" hidden><span class="ic">📥</span><b>ייבוא רשימת נפטרים</b><small>מקובץ Excel או CSV</small></button>
     <button class="t" id="bPlaces" hidden><span class="ic">🚰</span><b>נקודות שימושיות</b><small>ברזיות, שירותים, חניה ושעות פתיחה</small></button>
+    <button class="t" id="bTz" hidden><span class="ic">🕯️</span><b>קברי צדיקים</b><small>בבית העלמין ובסביבה</small></button>
     <button class="t" id="bVac" hidden><span class="ic">🟩</span><b>קברים פנויים</b><small>לפי הרשימה, בכל חלקה</small></button>
     <button class="t" id="bCt" hidden><span class="ic">☎️</span><b>אנשי קשר</b></button>
     <button class="t" id="addEd" hidden><span class="ic">👤</span><b>מינוי עורך</b><small>למנהלים בלבד</small></button>
@@ -154,6 +155,29 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
   <div class="chips" id="pKinds"></div>
   <div class="row"><button class="pri" id="pHere">📍 המיקום שלי</button><button id="pHours">🕐 שעות פתיחה</button><button id="pDone">✓ סיום</button></div>
 </div>
+
+<div id="tzpanel" hidden>
+  <div id="tzmsg" style="font-size:14px;margin-bottom:6px">הקישו על המפה במקום הקבר, לחצו "המיקום שלי" כשאתם עומדים ליד הקבר, או בחרו נפטר מהרשומות. הקשה על נקודה זהובה – עריכה.</div>
+  <div class="row"><button class="pri" id="tzHere">📍 המיקום שלי</button><button id="tzRec">🔍 מרשומת נפטר</button><button id="tzDone">✓ סיום</button></div>
+</div>
+<div class="dlg" id="dTz"><div class="box" style="max-width:520px;max-height:92vh;overflow:auto">
+  <h3 id="tzH">קבר צדיק</h3>
+  <div class="rv" style="border:0;padding:0">
+    <div class="chips" id="tzIn"><button data-v="1" class="sel">בתוך בית העלמין</button><button data-v="0">בסביבה</button></div>
+    <label style="font-size:12px;color:var(--mute);display:flex;flex-direction:column">נפטר מהרשומות (לא חובה)<input id="tzQ" placeholder="שם משפחה או שם פרטי…"></label>
+    <div id="tzRes" style="font-size:14px"></div>
+    <div id="tzDec" style="font-size:14px;color:var(--pri);min-height:18px;margin:4px 0"></div>
+    <div class="g" style="grid-template-columns:1fr 1fr">
+      <label style="grid-column:1/-1">שם לתצוגה<input id="tzTitle" placeholder='למשל: הרב פלוני בן פלוני זצ"ל'></label>
+      <label>יום ההילולא<select id="tzDay"></select></label><label>חודש<select id="tzMon"></select></label>
+      <label style="grid-column:1/-1">איפה (לנקודה בסביבה)<input id="tzPlace" placeholder="למשל: מערה ביער, ליד היישוב…"></label>
+      <label style="grid-column:1/-1">טקסט קצר<textarea id="tzAbout" rows="3" style="font:inherit;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)" placeholder="מי היה, מה מקובל לעשות ליד הקבר"></textarea></label>
+    </div>
+    <div id="tzLoc" style="font-size:13px;color:var(--mute);margin-top:6px"></div>
+  </div>
+  <div id="tzMsg2" style="font-size:14px;min-height:18px;margin:6px 0"></div>
+  <div class="row"><button class="ok" id="tzSave">💾 שמירה</button><button class="bad" id="tzDel" hidden>מחיקה</button><button id="tzClose">סגירה</button></div>
+</div></div>
 
 <div class="dlg" id="dHours"><div class="box">
   <h3>שעות פתיחה</h3>
@@ -278,7 +302,7 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="/hebcal.js"></script>
+<script src="/hebcal.js?v=2"></script>
 <script>
 // ===== הגדרות: הדבק כאן את הפרטים מ-Supabase (Settings > API) =====
 const SUPABASE_URL = "https://vqydrrhgklikhfdsgrwr.supabase.co";
@@ -540,7 +564,7 @@ async function login(){
 async function afterLogin(){
   const {data}=await sb.from('editors').select('*').eq('user_id',user.id).maybeSingle();
   if(!data){$('dLogin').classList.add('show');$('lMsg').textContent='המשתמש לא מורשה לעריכה (חסר בטבלת editors).';return}
-  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; $('bStat').hidden=false; $('bAdd').hidden=false; $('bPlaces').hidden=false; $('bVac').hidden=false; repCount(); revCount(); statLoad(); await loadCems();
+  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; $('bStat').hidden=false; $('bAdd').hidden=false; $('bPlaces').hidden=false; $('bTz').hidden=false; $('bVac').hidden=false; repCount(); revCount(); statLoad(); await loadCems();
 }
 async function addEditor(){
   const name=$('eName').value.trim(), email=$('eEmail').value.trim().toLowerCase(), pass=$('ePass').value;
@@ -924,6 +948,61 @@ $('pHours').onclick=async()=>{const {data}=await sb.from('cemeteries').select('h
 $('hoursSave').onclick=async()=>{const {error}=await sb.from('cemeteries').update({hours:$('hoursIn').value.trim()||null}).eq('id',$('cem').value);
   $('hoursMsg').textContent=error?'השמירה נכשלה: '+error.message:'✓ נשמר';$('hoursMsg').style.color=error?'var(--bad)':'var(--ok)'};
 $('hoursClose').onclick=()=>$('dHours').classList.remove('show');
+
+// ---------- קברי צדיקים ----------
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let tzMode=false, tzList=[], tzCur=null;
+const tzLayer=L.layerGroup().addTo(map);
+const ymdL=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+$('tzDay').innerHTML='<option value="">—</option>'+Array.from({length:30},(_,i)=>`<option value="${i+1}">${HebCal.gem(i+1)}</option>`).join('');
+$('tzMon').innerHTML='<option value="">—</option>'+HebCal.MONTHS.map(m=>`<option>${m}</option>`).join('');
+async function tzLoad(){if(DEMO)return;const {data}=await sb.from('tzaddikim').select('*').eq('cemetery_id',$('cem').value);tzList=data||[];tzDraw()}
+function tzDraw(){tzLayer.clearLayers();
+  for(const t of tzList)L.marker([t.lat,t.lng],{icon:L.divIcon({className:'',html:'<div class="pin" style="background:#E0A83A">🕯️</div>',iconSize:[32,32],iconAnchor:[16,16]})})
+    .addTo(tzLayer).bindTooltip(esc(t.title)).on('click',()=>{if(tzMode)tzOpen(t)})}
+function tzSetIn(v){$('tzIn').querySelectorAll('button').forEach(b=>b.classList.toggle('sel',b.dataset.v===(v?'1':'0')));tzCur.inside=v}
+function tzLocTxt(){$('tzLoc').textContent=tzCur.lat?`📍 מיקום: ${tzCur.lat.toFixed(6)}, ${tzCur.lng.toFixed(6)}`:'📍 עוד אין מיקום – בחרו נפטר שיש לו מיקום, או סגרו והקישו על המפה.'}
+function tzOpen(t){tzCur={...t};
+  const c=cems.find(x=>x.id===$('cem').value);
+  if(t.inside==null)tzCur.inside=!(t.lat&&c?.center_lat)||map.distance([t.lat,t.lng],[c.center_lat,c.center_lng])<500;
+  $('tzH').textContent=t.id?'עריכת קבר צדיק':'קבר צדיק חדש';tzSetIn(tzCur.inside);
+  $('tzTitle').value=t.title||'';$('tzPlace').value=t.place||'';$('tzAbout').value=t.about||'';$('tzQ').value='';$('tzRes').innerHTML='';
+  $('tzDec').textContent=t.deceased_id?'מקושר לרשומת נפטר #'+t.deceased_id:'';
+  if(t.hillula){const [y,m,d]=t.hillula.split('-').map(Number),h=HebCal.toHeb(new Date(y,m-1,d));$('tzDay').value=h.day;$('tzMon').value=h.month}else{$('tzDay').value='';$('tzMon').value=''}
+  $('tzDel').hidden=!t.id;$('tzMsg2').textContent='';tzLocTxt();$('dTz').classList.add('show')}
+$('tzIn').onclick=e=>{const b=e.target.closest('button');if(b)tzSetIn(b.dataset.v==='1')};
+let tzT=0;$('tzQ').oninput=()=>{clearTimeout(tzT);tzT=setTimeout(async()=>{const q=$('tzQ').value.trim();if(q.length<2){$('tzRes').innerHTML='';return}
+  const {data}=await sb.from('deceased').select('id,first_name,last_name,father_name,mother_name,plot,row_no,grave_no,death_date').eq('cemetery_id',$('cem').value).or(`last_name.ilike.%${q}%,first_name.ilike.%${q}%`).limit(8);
+  $('tzRes').innerHTML=(data||[]).map(d=>`<button class="linkb" style="display:block;text-align:right;padding:4px 0" data-j='${esc(JSON.stringify(d)).replace(/'/g,'&#39;')}'>${esc(d.last_name||'')} ${esc(d.first_name||'')} ${d.father_name?'בן '+esc(d.father_name):''} · חלקה ${esc(d.plot||'?')} שורה ${esc(d.row_no||'?')} קבר ${esc(d.grave_no||'?')}</button>`).join('')||'<span style="color:var(--mute)">לא נמצא</span>'},300)};
+$('tzRes').onclick=async e=>{const b=e.target.closest('button');if(!b)return;const d=JSON.parse(b.dataset.j);
+  tzCur.deceased_id=d.id;tzSetIn(true);$('tzRes').innerHTML='';$('tzQ').value='';
+  $('tzDec').textContent=`✓ מקושר: ${d.last_name||''} ${d.first_name||''}`;
+  if(!$('tzTitle').value)$('tzTitle').value=`${d.first_name||''} ${d.last_name||''}`.trim()+' זצ"ל';
+  if(d.death_date){const [y,m,dd]=d.death_date.split('-').map(Number),h=HebCal.toHeb(new Date(y,m-1,dd));$('tzDay').value=h.day;$('tzMon').value=h.month}
+  const {data}=await sb.from('grave_locations').select('lat,lng,accuracy').eq('deceased_id',d.id).order('accuracy').limit(1);
+  if(data&&data[0]){tzCur.lat=data[0].lat;tzCur.lng=data[0].lng}else if(!tzCur.lat){$('tzMsg2').textContent='לרשומה הזו אין מיקום GPS. סגרו והקישו על המפה במקום הקבר – הקישור לנפטר יישמר.';$('tzMsg2').style.color='var(--warn)'}
+  tzLocTxt()};
+$('tzSave').onclick=async()=>{const title=$('tzTitle').value.trim();
+  if(!title){$('tzMsg2').textContent='צריך שם לתצוגה.';$('tzMsg2').style.color='var(--bad)';return}
+  if(!tzCur.lat){$('tzMsg2').textContent='צריך מיקום: סגרו והקישו על המפה, ואז בחרו שוב.';$('tzMsg2').style.color='var(--bad)';return}
+  const day=+$('tzDay').value, mon=$('tzMon').value; let hil=null;
+  if(day&&mon){const g=HebCal.fromHeb(mon,day);if(!g){$('tzMsg2').textContent='התאריך הזה לא קיים בלוח.';$('tzMsg2').style.color='var(--bad)';return}hil=ymdL(g)}
+  const row={cemetery_id:$('cem').value,deceased_id:tzCur.deceased_id||null,title,inside:!!tzCur.inside,place:$('tzPlace').value.trim()||null,about:$('tzAbout').value.trim()||null,hillula:hil,lat:tzCur.lat,lng:tzCur.lng};
+  const q=tzCur.id?sb.from('tzaddikim').update(row).eq('id',tzCur.id):sb.from('tzaddikim').insert(row);
+  const {error}=await q;if(error){$('tzMsg2').textContent='השמירה נכשלה: '+error.message;$('tzMsg2').style.color='var(--bad)';return}
+  $('dTz').classList.remove('show');$('tzmsg').textContent=`✓ נשמר: ${title}. מופיע באתר ובאפליקציה.`;await tzLoad()};
+$('tzDel').onclick=async()=>{if(!await ask(`למחוק את "${tzCur.title}"?`,'הנקודה תוסר מהמפה. רשומת הנפטר לא נמחקת.'))return;
+  const {error}=await sb.from('tzaddikim').delete().eq('id',tzCur.id);if(!error){$('dTz').classList.remove('show');await tzLoad()}};
+$('tzClose').onclick=()=>$('dTz').classList.remove('show');
+map.on('click',e=>{if(!tzMode)return;
+  if(tzCur&&!tzCur.id&&!tzCur.lat&&tzCur.deceased_id){tzCur.lat=e.latlng.lat;tzCur.lng=e.latlng.lng;tzOpen(tzCur);return}
+  tzOpen({lat:e.latlng.lat,lng:e.latlng.lng})});
+$('tzHere').onclick=()=>{$('tzmsg').textContent='מחפש מיקום…';navigator.geolocation.getCurrentPosition(p=>{
+    if(p.coords.accuracy>20){$('tzmsg').textContent=`הדיוק נמוך (${Math.round(p.coords.accuracy)} מ'). נסו שוב בעוד רגע, או הקישו על המפה.`;return}
+    tzOpen({lat:p.coords.latitude,lng:p.coords.longitude})},()=>{$('tzmsg').textContent='אין גישה למיקום. אפשר להקיש על המפה.'},{enableHighAccuracy:true,timeout:15000,maximumAge:0})};
+$('tzRec').onclick=()=>{tzOpen({inside:true});setTimeout(()=>$('tzQ').focus(),50)};
+$('bTz').onclick=async()=>{tzMode=true;tzCur=null;$('ehome').classList.add('off');$('panel').style.display='none';$('tzpanel').hidden=false;map.invalidateSize();await tzLoad()};
+$('tzDone').onclick=()=>{tzMode=false;tzCur=null;tzLayer.clearLayers();$('tzpanel').hidden=true;$('panel').style.display='';$('ehome').classList.remove('off')};
 
 // ---------- קברים פנויים (לפי הרשימה) ----------
 let vacData=null;

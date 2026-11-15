@@ -147,7 +147,7 @@ h3.grp{font-size:15px;color:var(--mute);margin:18px 2px 8px}
       <a class="btn cta" href="/download/">⬇ הורדת האפליקציה</a>
     </div>
     <div class="offl"><span id="offTxt">שמרו את בית העלמין בטלפון כדי שיעבוד גם בלי קליטה (קל יותר מסרטון קצר בוואטסאפ).</span><button class="btn sec" id="offBtn">שמירה</button></div>
-    <footer><a href="#" id="showContacts">אנשי קשר ומכיני מצבות</a> · <a href="/info/" id="infoLink">מידע שימושי</a> · <a href="#" id="showPrayer">ברכת הרואה קברים</a> · <a href="/ashkava/">השכבה</a> · <a href="/tefilon/">תפילון</a> · <a href="/download/">הורדת האפליקציה</a> · <a href="marker/">כניסת עורכים</a> · <a href="/privacy/">מדיניות פרטיות</a> · <a href="https://bulu.ltd/accessibility/">הצהרת נגישות</a> · <a href="mailto:ceo@bulu.ltd?subject=Grave%20Marker">צרו קשר</a>
+    <footer><a href="#" id="showContacts">אנשי קשר ומכיני מצבות</a> · <a href="/info/" id="infoLink">מידע שימושי</a> · <a href="/tz/" id="tzLink">קברי צדיקים</a> · <a href="#" id="showPrayer">ברכת הרואה קברים</a> · <a href="/ashkava/">השכבה</a> · <a href="/tefilon/">תפילון</a> · <a href="/download/">הורדת האפליקציה</a> · <a href="marker/">כניסת עורכים</a> · <a href="/privacy/">מדיניות פרטיות</a> · <a href="https://bulu.ltd/accessibility/">הצהרת נגישות</a> · <a href="mailto:ceo@bulu.ltd?subject=Grave%20Marker">צרו קשר</a>
       <div class="built">נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
   </div>
 </section>
@@ -203,7 +203,7 @@ h3.grp{font-size:15px;color:var(--mute);margin:18px 2px 8px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/lite.umd.js"></script>
-<script src="/hebcal.js"></script>
+<script src="/hebcal.js?v=2"></script>
 <script>
 const SUPABASE_URL="https://vqydrrhgklikhfdsgrwr.supabase.co", SUPABASE_KEY="sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false}});
@@ -230,7 +230,7 @@ async function loadCems(){
   await setCem($('cem').value);
 }
 async function setCem(id){
-  cem=cems.find(c=>c.id===id); store.set('cem',id); try{$('infoLink').href='/info/?c='+encodeURIComponent(id)}catch{}
+  cem=cems.find(c=>c.id===id); store.set('cem',id); try{$('infoLink').href='/info/?c='+encodeURIComponent(id);$('tzLink').href='/tz/?c='+encodeURIComponent(id)}catch{}
   const {data}=await sb.from('plots').select('gush,plot,boundary').eq('cemetery_id',id);
   plots=data||[];
 }

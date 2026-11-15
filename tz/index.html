@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<script src="/shabbat.js?v=3"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<title>קברי צדיקים – Grave Marker</title>
+<meta name="description" content="קברי צדיקים בבית העלמין ובסביבתו – מיקום, ניווט ויום ההילולא">
+<meta name="theme-color" content="#1f5b57">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#f4f1ec;--card:#fffdf9;--ink:#23262b;--mute:#6d6a64;--line:#e2ddd4;--acc:#1f5b57;--gold:#E0A83A}
+@media (prefers-color-scheme:dark){:root{--bg:#15181b;--card:#1e2226;--ink:#ece9e3;--mute:#a19d95;--line:#30353a;--acc:#5fb3aa}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,Arial,sans-serif}
+header{background:#1f5b57;color:#fff;padding:14px 16px}
+header .row{max-width:600px;margin:0 auto;display:flex;gap:10px;align-items:center}
+header h1{font-size:20px;margin:0}header small{display:block;opacity:.85;font-size:13px}
+header a{color:#fff;text-decoration:none;font-size:22px}
+.wrap{max-width:600px;margin:0 auto;padding:12px 16px 40px}
+#map{height:300px;border-radius:12px;overflow:hidden;margin-bottom:10px}
+.sec{color:var(--mute);font-size:14px;font-weight:700;margin:14px 2px 6px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:center;cursor:pointer;width:100%;font:inherit;color:inherit;text-align:right}
+.item .ic{font-size:22px}.item .t{flex:1;min-width:0}.item b{display:block}.item small{color:var(--mute)}
+.dist{font-size:13px;color:var(--acc);font-weight:700;white-space:nowrap}
+.soon{display:inline-block;background:var(--gold);color:#fff;border-radius:10px;padding:0 8px;font-size:12px;margin-top:3px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:10px}
+.card h2{margin:4px 0 6px;font-size:22px}.card .sub{color:var(--mute);font-size:14px}
+.card p{white-space:pre-line;line-height:1.6;margin:10px 0 0}
+.btn{display:block;width:100%;margin:8px 0;padding:12px;border-radius:10px;text-align:center;font:inherit;font-weight:700;background:var(--acc);color:#fff;border:1px solid var(--acc);text-decoration:none;cursor:pointer}
+.btn.o{background:var(--card);color:var(--acc)}
+.empty{color:var(--mute);text-align:center;padding:24px}
+.pin{width:30px;height:30px;border-radius:50%;background:var(--gold);border:2px solid #fff;box-shadow:0 1px 4px #0008;display:grid;place-items:center;font-size:15px}
+footer{text-align:center;color:var(--mute);font-size:13px;padding-top:16px}footer a{color:var(--mute)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="row"><a href="/" id="back" aria-label="חזרה">→</a><div><h1 id="h1">קברי צדיקים</h1><small id="cemName"></small></div></div></header>
+<div class="wrap">
+  <div id="map"></div>
+  <div id="list"><p class="empty">טוען…</p></div>
+  <div id="one" hidden></div>
+  <footer><a href="/">חיפוש קבר</a> · <a href="/download/">הורדת האפליקציה</a><div>נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
+</div>
+<script src="/hebcal.js?v=2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const SB='https://vqydrrhgklikhfdsgrwr.supabase.co', KEY='sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C';
+const api=p=>fetch(`${SB}/rest/v1/${p}&apikey=${KEY}`).then(r=>r.ok?r.json():[]).catch(()=>[]);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sp=new URLSearchParams(location.search);
+let cemId=sp.get('c'); try{cemId=cemId||JSON.parse(localStorage.getItem('cem'))}catch{} cemId=cemId||'ofakim';
+let T=[], D={}, me=null, map, cem;
+const DOW=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const dmy=d=>`${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+const pd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+function nextH(t){if(!t.hillula||typeof HebCal==='undefined')return null;try{return HebCal.nextYahrzeits(pd(t.hillula),5)}catch{return null}}
+const daysTo=d=>Math.round((d-new Date(new Date().toDateString()))/864e5);
+const distTxt=m=>m<1000?Math.round(m/10)*10+" מ'":(m/1000).toFixed(m<10000?1:0)+' ק"מ';
+const locOf=t=>{const d=D[t.deceased_id];if(!d)return t.place||'';return [d.plot&&'חלקה '+d.plot,d.row_no&&'שורה '+d.row_no,d.grave_no&&'קבר '+d.grave_no].filter(Boolean).join(', ')};
+
+function list(){
+  const ds=t=>me?map.distance(me,[t.lat,t.lng]):0;
+  const row=t=>{const h=nextH(t),z=h&&h[0],n=z?daysTo(z.date):99;
+    return `<button class="item" data-id="${t.id}"><span class="ic">🕯️</span><span class="t"><b>${esc(t.title)}</b><small>${[esc(locOf(t)),z?'הילולא: '+HebCal.fmt(z).replace(/ \S+$/,''):''].filter(Boolean).join(' · ')}</small>${n<=7?`<br><span class="soon">🔔 ${n===0?'היום':n===1?'מחר':'בעוד '+n+' ימים'} הילולא</span>`:''}</span>${me?`<span class="dist">${distTxt(ds(t))}</span>`:''}</button>`};
+  const sorted=[...T].sort((a,b)=>me?ds(a)-ds(b):a.title.localeCompare(b.title,'he'));
+  const ins=sorted.filter(t=>t.inside), out=sorted.filter(t=>!t.inside);
+  $('list').innerHTML=!T.length?'<p class="empty">עוד לא סומנו קברי צדיקים בבית העלמין הזה ובסביבתו.</p>':
+    (ins.length?'<div class="sec">בתוך בית העלמין</div>'+ins.map(row).join(''):'')+(out.length?'<div class="sec">בסביבה</div>'+out.map(row).join(''):'');
+}
+function show(id){
+  const t=T.find(x=>String(x.id)===String(id));
+  if(!t){$('one').hidden=true;$('list').hidden=false;$('h1').textContent='קברי צדיקים';list();return}
+  $('list').hidden=true;$('one').hidden=false;$('h1').textContent=t.title;
+  const h=nextH(t),z=h&&h[0],d=D[t.deceased_id];
+  const nav=`https://www.google.com/maps/dir/?api=1&destination=${t.lat},${t.lng}&travelmode=${t.inside?'walking':'driving'}`;
+  const tq=d?new URLSearchParams({n:d.first_name||'',p:d.mother_name||d.father_name||'',t:d.mother_name?'m':'f'}):null;
+  $('one').innerHTML=`<div class="card"><div class="sub">🕯️ ${t.inside?'קבר צדיק':'ציון בסביבה'}${locOf(t)?' · '+esc(locOf(t)):''}${me?' · '+distTxt(map.distance(me,[t.lat,t.lng]))+' ממך':''}</div>
+    <h2>${esc(t.title)}</h2>
+    ${z?`<div>יום ההילולא: <b>${HebCal.fmt(z)}</b></div><div class="sub">יום ${DOW[z.date.getDay()]}, ${dmy(z.date)} · ${(n=>n===0?'היום':n===1?'מחר':'בעוד '+n+' ימים')(daysTo(z.date))} · מתחיל בערב שלפני</div>`:''}
+    ${t.about?`<p>${esc(t.about)}</p>`:''}</div>
+    <a class="btn" href="${nav}" target="_blank" rel="noopener">🧭 ניווט לקבר</a>
+    <a class="btn o" href="/tefilon/${tq?'?'+tq:''}">📖 תפילון ליד הקבר</a>
+    ${z?'<button class="btn o" id="cal">🔔 תזכורת ליום ההילולא</button>':''}
+    ${d?`<a class="btn o" href="/?c=${encodeURIComponent(cemId)}&d=${d.id}">🪦 כרטיס הנפטר</a>`:''}
+    <button class="btn o" id="share">📤 שיתוף</button>
+    <button class="btn o" id="toList">← כל קברי הצדיקים</button>`;
+  map.setView([t.lat,t.lng],t.inside?19:15);
+  $('toList').onclick=()=>{history.pushState(null,'','?c='+encodeURIComponent(cemId));show(null);fit()};
+  $('share').onclick=()=>{const url=`${location.origin}/tz/?c=${encodeURIComponent(cemId)}&id=${t.id}`,txt=`${t.title} – מיקום וניווט לקבר`;
+    if(navigator.share)navigator.share({title:t.title,text:txt,url}).catch(()=>{});else location.href='https://wa.me/?text='+encodeURIComponent(txt+'\n'+url)};
+  if(z)$('cal').onclick=()=>{const p=n=>String(n).padStart(2,'0'),ymd=d=>`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`;
+    const ev=h.map(z=>{const e=new Date(z.date);e.setDate(e.getDate()+1);return ['BEGIN:VEVENT',`UID:gm-tz-${t.id}-${z.y}@gravemarker.bulu.ltd`,`DTSTAMP:${ymd(new Date())}T000000Z`,`DTSTART;VALUE=DATE:${ymd(z.date)}`,`DTEND;VALUE=DATE:${ymd(e)}`,
+      `SUMMARY:הילולא – ${t.title}`,`DESCRIPTION:${HebCal.fmt(z)}. מתחיל בערב שלפני.\\n${location.origin}/tz/?c=${cemId}&id=${t.id}`,'BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY',`DESCRIPTION:מחר הילולא – ${t.title}`,'END:VALARM','END:VEVENT'].join('\r\n')});
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Grave Marker//HE',...ev,'END:VCALENDAR'].join('\r\n')],{type:'text/calendar'}));a.download=`הילולא-${t.title}.ics`;a.click()};
+  scrollTo({top:0,behavior:'smooth'});
+}
+function fit(){if(T.length>1)map.fitBounds(L.latLngBounds(T.map(t=>[t.lat,t.lng])),{padding:[30,30],maxZoom:18});else if(T.length)map.setView([T[0].lat,T[0].lng],17)}
+(async()=>{
+  const [[c],tz]=await Promise.all([api(`cemeteries?id=eq.${encodeURIComponent(cemId)}&select=id,name,center_lat,center_lng`),api(`tzaddikim?cemetery_id=eq.${encodeURIComponent(cemId)}&select=*`)]);
+  if(!c){$('list').innerHTML='<p class="empty">לא מצאנו את בית העלמין.</p>';return}
+  cem=c;T=tz||[];$('cemName').textContent=c.name;
+  const ids=T.map(t=>t.deceased_id).filter(Boolean);
+  if(ids.length)for(const d of await api(`deceased?id=in.(${ids.join(',')})&select=id,first_name,father_name,mother_name,plot,row_no,grave_no`))D[d.id]=d;
+  map=L.map('map',{zoomControl:false}).setView([c.center_lat,c.center_lng],17);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:21,maxNativeZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+  for(const t of T)L.marker([t.lat,t.lng],{icon:L.divIcon({className:'',html:'<div class="pin">🕯️</div>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map)
+    .bindTooltip(esc(t.title)).on('click',()=>{history.pushState(null,'',`?c=${encodeURIComponent(cemId)}&id=${t.id}`);show(t.id)});
+  if(!T.length)$('map').style.display='none';
+  fit();
+  $('list').onclick=e=>{const b=e.target.closest('.item');if(!b)return;history.pushState(null,'',`?c=${encodeURIComponent(cemId)}&id=${b.dataset.id}`);show(b.dataset.id)};
+  addEventListener('popstate',()=>{show(new URLSearchParams(location.search).get('id'));});
+  show(sp.get('id'));
+  navigator.geolocation?.getCurrentPosition(p=>{me=[p.coords.latitude,p.coords.longitude];
+    L.circleMarker(me,{radius:7,color:'#fff',weight:2,fillColor:'#2a7de1',fillOpacity:1}).addTo(map);show(new URLSearchParams(location.search).get('id'))},()=>{},{maximumAge:60000,timeout:8000});
+})();
+</script>
+</body>
+</html>

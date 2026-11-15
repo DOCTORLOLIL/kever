@@ -34,7 +34,7 @@ footer{text-align:center;color:var(--mute);font-size:13px;padding-top:16px}foote
   <div id="hours"></div>
   <div id="map"></div>
   <div id="list"><p class="empty">טוען…</p></div>
-  <footer><a href="/">חיפוש קבר</a> · <a href="/download/">הורדת האפליקציה</a><div>נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
+  <footer><a href="/tz/" id="tzLink">🕯️ קברי צדיקים</a> · <a href="/">חיפוש קבר</a> · <a href="/download/">הורדת האפליקציה</a><div>נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
@@ -48,7 +48,7 @@ let cemId=new URLSearchParams(location.search).get('c'); try{cemId=cemId||JSON.p
 (async()=>{
   const [[c],places]=await Promise.all([api(`cemeteries?id=eq.${encodeURIComponent(cemId)}&select=id,name,center_lat,center_lng,hours`),api(`cemetery_places?cemetery_id=eq.${encodeURIComponent(cemId)}&select=kind,lat,lng,note`)]);
   if(!c){$('list').innerHTML='<p class="empty">לא מצאנו את בית העלמין.</p>';return}
-  $('cemName').textContent=c.name;
+  $('cemName').textContent=c.name;$('tzLink').href='/tz/?c='+encodeURIComponent(c.id);
   if(c.hours)$('hours').innerHTML=`<div class="card"><span class="ic">🕐</span><span class="t"><b>שעות פתיחה</b><small style="white-space:pre-line">${esc(c.hours)}</small></span></div>`;
   const map=L.map('map',{zoomControl:false}).setView([c.center_lat,c.center_lng],17);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:21,maxNativeZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);

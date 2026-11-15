@@ -32,5 +32,9 @@ const HebCal=(()=>{
     while(out.length<count){const z=yahrzeitIn(h,y);if(z.y>h.y&&z.rd>=today)out.push({...z,date:dateOf(z.rd)});y++}
     return out;
   }
-  return {toHeb,fmt,nextYahrzeits,gem};
+  // תאריך עברי (יום+חודש) → תאריך לועזי בשנה שעברה, לשמירה ולחישוב ימי השנה
+  function fromHeb(month,day){let y=toHeb(new Date()).y-1;
+    for(let i=0;i<20;i++,y--){const m=months(y).find(x=>x[0]===month);if(m&&day<=m[1])return dateOf(toRd(y,month,day))}return null}
+  const MONTHS=['תשרי','חשון','כסלו','טבת','שבט','אדר','אדר א','אדר ב','ניסן','אייר','סיון','תמוז','אב','אלול'];
+  return {toHeb,fmt,nextYahrzeits,gem,fromHeb,MONTHS};
 })();
