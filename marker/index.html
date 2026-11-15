@@ -119,6 +119,13 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
     <input id="plot" class="grow" list="plotList" aria-label="חלקה" placeholder="בחרו או הקלידו">
     <datalist id="plotList"></datalist>
   </div>
+  <div class="bar" id="metaBar" hidden>
+    <span class="tag" id="metaTag">שם</span>
+    <input id="plotName" class="grow" placeholder="שם פנימי לחלקה (לעורכים בלבד)" aria-label="שם פנימי">
+    <button id="bName" style="flex:0 0 auto">שמירה</button>
+    <button id="bSplit" style="flex:0 0 auto">➗ חלוקה לתת חלקות</button>
+    <button id="bSubExit" style="flex:0 0 auto" hidden>↩ לחלקה</button>
+  </div>
 </header>
 <div id="map"></div>
 <div id="panel">
@@ -284,6 +291,7 @@ const DEMO = !SUPABASE_URL || !SUPABASE_KEY;
 const sb = DEMO ? null : supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const store = {get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 
+let subSel=null, meta=[];   // תת-חלקה שנבחרה לסימון (null = החלקה עצמה), שמות ותתי-חלקות
 let cems=[], plots=[], pts=[], walking=false, tapping=false, watchId=null, lastFix=null, wake=null, user=null;
 
 // ---------- מפה ----------
@@ -391,7 +399,7 @@ function simplify(ps,tol){
 function msg(t,c){$('msg').textContent=t;$('msg').style.color=c?`var(--${c})`:''}
 function ask(title,text){return new Promise(r=>{$('aTitle').textContent=title;$('aText').textContent=text;$('dAsk').classList.add('show');
   $('aYes').onclick=()=>{$('dAsk').classList.remove('show');r(true)};$('aNo').onclick=()=>{$('dAsk').classList.remove('show');r(false)}})}
-const key=()=>`draft:${$('cem').value}:${$('gush').value.trim()}:${$('plot').value.trim()}`;
+const key=()=>`draft:${$('cem').value}:${$('gush').value.trim()}:${$('plot').value.trim()}${subSel!=null?':sub:'+subSel:''}`;
 function current(){return plots.find(p=>p.gush===$('gush').value.trim()&&p.plot===$('plot').value.trim())}
 
 function drawDraft(){
@@ -409,15 +417,24 @@ function drawPlots(){
     const isSel=p===sel;
     const poly=L.polygon(ll,{color:isSel?'#ff3b30':'#4cd964',weight:isSel?3:2,fillOpacity:isSel?.25:.12}).addTo(plotLayer);
     poly.on('click',e=>{if(tapping){addPoint([e.latlng.lat,e.latlng.lng]);return} $('gush').value=p.gush;$('plot').value=p.plot;onPlotChange()});
-    L.marker(poly.getBounds().getCenter(),{icon:L.divIcon({className:'lbl',html:(p.gush!=='1'?p.gush+'/':'')+p.plot,iconSize:[40,20]}),interactive:false}).addTo(plotLayer);
+    const nm=meta.find(m=>m.gush===p.gush&&m.plot===p.plot&&m.sub==='')?.name;
+    L.marker(poly.getBounds().getCenter(),{icon:L.divIcon({className:'lbl',html:(p.gush!=='1'?p.gush+'/':'')+p.plot+(nm?`<br><small style="font-size:10px">${escH(nm)}</small>`:''),iconSize:[80,30]}),interactive:false}).addTo(plotLayer);
   });
+  // תתי-חלקות (לעורכים בלבד)
+  meta.filter(m=>m.sub&&m.boundary).forEach(m=>{const ll=m.boundary.coordinates[0].map(c=>[c[1],c[0]]);
+    const on=m.gush===$('gush').value.trim()&&m.plot===$('plot').value.trim()&&m.sub===subSel;
+    const sp=L.polygon(ll,{color:'#E0A83A',weight:on?3:2,dashArray:'6 5',fillOpacity:on?.25:.08}).addTo(plotLayer);
+    sp.on('click',e=>{if(tapping){addPoint([e.latlng.lat,e.latlng.lng]);return}$('gush').value=m.gush;$('plot').value=m.plot;subSel=m.sub;onPlotChange()});
+    L.marker(sp.getBounds().getCenter(),{icon:L.divIcon({className:'lbl',html:`<small style="color:#E0A83A">${escH(m.plot)}/${escH(m.sub)}</small>`,iconSize:[70,18]}),interactive:false}).addTo(plotLayer)});
   $('sDone').textContent=`${plots.filter(p=>p.boundary).length}/${plots.length}`;
   $('tMapSub').textContent=plots.length?`${plots.filter(p=>p.boundary).length} מתוך ${plots.length} חלקות סומנו`:'';
   $('plotList').innerHTML=plots.map(p=>`<option value="${p.plot}">${p.boundary?'✓ מסומנת':'טרם סומנה'}${p.gush!=='1'?' · גוש '+p.gush:''}</option>`).join('');
   $('bDel').disabled=!sel||!sel.boundary;
 }
-function onPlotChange(){ if(walking)stopWalk(); pts=store.get(key(),[]); drawDraft(); drawPlots();
+function onPlotChange(){ if(walking)stopWalk(); if(subSel!=null&&!meta.some(m=>m.gush===$('gush').value.trim()&&m.plot===$('plot').value.trim()&&m.sub===subSel)&&!pendingSub)subSel=null;
+  pendingSub=false; pts=store.get(key(),[]); drawDraft(); drawPlots(); metaUi();
   const p=current(); if(!$('plot').value.trim()) msg('בחר חלקה.');
+  else if(subSel!=null) msg(`תת-חלקה "${subSel}" בחלקה ${$('plot').value} – סמנו את הגבול שלה בהליכה או בהקשה.`,'warn');
   else if(p&&p.boundary) msg(`חלקה ${p.plot} כבר מסומנת. סימון חדש יחליף אותה.`,'warn');
   else msg(`חלקה ${$('plot').value} — מוכן לסימון.`);
 }
@@ -464,7 +481,7 @@ async function loadPlots(){
   if(DEMO)plots=store.get('demo:plots:'+cid,[]);
   else{const {data,error}=await sb.from('plots').select('*').eq('cemetery_id',cid);if(error){msg('שגיאה: '+error.message,'bad');return}plots=data}
   plots.sort((a,b)=>a.gush.localeCompare(b.gush)||parseInt(a.plot)-parseInt(b.plot)||a.plot.localeCompare(b.plot));
-  drawPlots();
+  await loadMeta();
 }
 async function onCemChange(){
   store.set('lastCem',$('cem').value); const c=cems.find(x=>x.id===$('cem').value); $('cemName').textContent=c?.name||'';
@@ -476,6 +493,12 @@ async function save(){
   if(pts.length<3)return;
   const gush=$('gush').value.trim()||'1', plot=$('plot').value.trim(), cid=$('cem').value;
   const ring=simplify(pts,SIMPLIFY), a=area(ring);
+  if(subSel!=null){                                     // שמירת גבול של תת-חלקה
+    if(!await ask(`לשמור את תת-החלקה "${subSel}" בחלקה ${plot}?`,`${ring.length} נקודות, שטח כ-${Math.round(a).toLocaleString('he')} מ"ר.`))return;
+    stopWalk();const coords=ring.map(p=>[+p[1].toFixed(7),+p[0].toFixed(7)]);coords.push(coords[0]);
+    const {error}=await sb.from('plot_meta').upsert({cemetery_id:cid,gush,plot,sub:subSel,name:subSel,boundary:{type:'Polygon',coordinates:[coords]},area_m2:Math.round(a),updated_at:new Date().toISOString()},{onConflict:'cemetery_id,gush,plot,sub'});
+    if(error){msg('השמירה נכשלה ('+error.message+'). הטיוטה שמורה בטלפון.','bad');return}
+    pts=[];store.set(key(),[]);drawDraft();await loadMeta();msg(`תת-החלקה "${subSel}" נשמרה ✓ אפשר להוסיף עוד אחת ב"חלוקה לתת חלקות".`,'ok');return}
   const ok=await ask(`לשמור את חלקה ${plot}?`,`${ring.length} נקודות, שטח כ-${Math.round(a).toLocaleString('he')} מ"ר.${current()?.boundary?' הגבול הקודם יוחלף.':''}`);
   if(!ok)return;
   stopWalk();
@@ -488,6 +511,9 @@ async function save(){
   msg(`חלקה ${plot} נשמרה ✓ בחר את החלקה הבאה.`,'ok'); $('plot').value='';
 }
 async function delPlot(){
+  if(subSel!=null){if(!await ask(`למחוק את תת-החלקה "${subSel}"?`,'הגבול והשם שלה יימחקו.'))return;
+    await sb.from('plot_meta').delete().eq('cemetery_id',$('cem').value).eq('gush',$('gush').value.trim()||'1').eq('plot',$('plot').value.trim()).eq('sub',subSel);
+    subSel=null;await loadMeta();onPlotChange();return}
   const p=current(); if(!p||!p.boundary)return;
   if(!await ask(`למחוק את הגבול של חלקה ${p.plot}?`,'החלקה תישאר ברשימה, רק הגבול יימחק.'))return;
   if(DEMO){const all=store.get('demo:plots:'+p.cemetery_id,[]);const x=all.find(q=>q.gush===p.gush&&q.plot===p.plot);if(x)x.boundary=null;store.set('demo:plots:'+p.cemetery_id,all)}
@@ -929,6 +955,33 @@ function vacPlot(p){$('vacTitle').textContent=`חלקה ${p.gush!=='1'?p.gush+'/
   $('vacBody').innerHTML=html+'</div><p style="font-size:13px;color:var(--mute)">השורות מסודרות מימין לשמאל, והקברים מלמעלה למטה, כמו במפה. ריחוף או לחיצה ארוכה על קבר מציגים את השם.</p>'}
 $('bVac').onclick=async()=>{$('dVac').classList.add('show');$('vacBody').textContent='טוען…';if(!vacData)await vacLoad();vacSummary()};
 $('vacBack').onclick=vacSummary;$('vacClose').onclick=()=>$('dVac').classList.remove('show');
+
+// ---------- שמות ותתי-חלקות (לעורכים בלבד) ----------
+let pendingSub=false;
+async function loadMeta(){if(DEMO||!user){meta=[];drawPlots();return}
+  const {data}=await sb.from('plot_meta').select('*').eq('cemetery_id',$('cem').value);meta=data||[];drawPlots();metaUi()}
+function metaUi(){const plot=$('plot').value.trim();$('metaBar').hidden=!plot||!user||DEMO;if(!plot)return;
+  const g=$('gush').value.trim()||'1',m=meta.find(x=>x.gush===g&&x.plot===plot&&x.sub===(subSel??''));
+  $('metaTag').textContent=subSel!=null?'תת-חלקה':'שם';
+  $('plotName').placeholder=subSel!=null?'שם תת-החלקה':'שם פנימי לחלקה (לעורכים בלבד)';
+  $('plotName').value=subSel!=null?(m?.name??subSel):(m?.name??'');
+  $('bSplit').hidden=subSel!=null;$('bSubExit').hidden=subSel==null;
+  $('bDel').textContent=subSel!=null?'מחק תת-חלקה':'מחק גבול';$('bDel').disabled=subSel!=null?!m:!(current()?.boundary)}
+$('bName').onclick=async()=>{const g=$('gush').value.trim()||'1',plot=$('plot').value.trim(),name=$('plotName').value.trim();if(!plot)return;
+  if(subSel!=null){const newSub=name||subSel;
+    const {error}=await sb.from('plot_meta').upsert({cemetery_id:$('cem').value,gush:g,plot,sub:subSel,name:newSub,updated_at:new Date().toISOString()},{onConflict:'cemetery_id,gush,plot,sub'});
+    if(error){msg('השמירה נכשלה: '+error.message,'bad');return}
+    if(newSub!==subSel){await sb.from('plot_meta').update({sub:newSub}).eq('cemetery_id',$('cem').value).eq('gush',g).eq('plot',plot).eq('sub',subSel);
+      const d=store.get(key(),[]);subSel=newSub;store.set(key(),d)}}
+  else{const {error}=await sb.from('plot_meta').upsert({cemetery_id:$('cem').value,gush:g,plot,sub:'',name:name||null,updated_at:new Date().toISOString()},{onConflict:'cemetery_id,gush,plot,sub'});
+    if(error){msg('השמירה נכשלה: '+error.message,'bad');return}}
+  await loadMeta();msg('✓ השם נשמר (מוצג לעורכים בלבד).','ok')};
+$('bSplit').onclick=()=>{const plot=$('plot').value.trim();if(!plot)return;
+  const n=prompt(`שם לתת-חלקה חדשה בחלקה ${plot} (למשל "א" או "ילדים"):`,'');if(!n||!n.trim())return;
+  if(meta.some(m=>m.gush===($('gush').value.trim()||'1')&&m.plot===plot&&m.sub===n.trim())){msg('כבר קיימת תת-חלקה בשם הזה.','bad');return}
+  subSel=n.trim();pendingSub=true;onPlotChange()};
+$('bSubExit').onclick=()=>{subSel=null;onPlotChange()};
+$('plot').addEventListener('change',()=>{subSel=null},true);
 document.addEventListener('visibilitychange',async()=>{if(walking&&document.visibilityState==='visible'){try{wake=await navigator.wakeLock?.request('screen')}catch{}}});
 
 (async()=>{
