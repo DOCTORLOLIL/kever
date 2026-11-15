@@ -67,7 +67,8 @@ function label(btn){btn.textContent=speaking?'⏸ עצירה':resumeAt>0?'▶ ה
 async function speak(els,btn,from){
   if(speaking){speaking=false;audio?.pause();label(btn);return}      // עצירה – ממשיכים אחר כך מתחילת אותו פסוק
   speaking=true;let i=from??resumeAt,played=false;if(i>=els.length)i=0;label(btn);
-  const say=e=>(e.dataset.say||e.innerText);
+  // מקורות הפסוקים והערות בסוגריים (בלי ניקוד, כמו "(תהלים קמט, ה)" או "(אמן)") לא מוקראים
+  const say=e=>(e.dataset.say||e.innerText).replace(/\s*\([^()\u05B0-\u05C7]*\)/g,'');
   const prep=k=>k<els.length?Promise.all(parts(say(els[k])).map(p=>clip(p).catch(()=>null))):null;
   let next=prep(i);
   for(;i<els.length&&speaking;i++){const e=els[i];resumeAt=i;const urls=await next;next=prep(i+1);   // מכינים את הבא מראש
@@ -90,7 +91,7 @@ function attach({bar,items,root}){
   const box=document.createElement('span');box.className='gm-tools';
   const lang=(navigator.language||'').slice(0,2), def=lang==='ru'?'cyr':'lat';
   let mode=null;try{mode=localStorage.getItem('gmTr')}catch{} if(mode==='null')mode=null;
-  box.innerHTML=`${SPEAK?'<button type="button" id="gmSay">🔊 השמעה</button><button type="button" id="gmRestart" hidden title="מההתחלה">⟲ מההתחלה</button>':''}<button type="button" id="gmLat">Abc</button><button type="button" id="gmCyr">Абв</button>`;
+  box.innerHTML=`${SPEAK?'<button type="button" id="gmRestart" hidden title="מההתחלה">⟲ מההתחלה</button><button type="button" id="gmSay">🔊 השמעה</button>':''}<button type="button" id="gmLat">Abc</button><button type="button" id="gmCyr">Абв</button>`;
   host.prepend(box);
   const sel=()=>[...document.querySelectorAll(items)];
   let draw=()=>{document.querySelectorAll('.gm-tr').forEach(e=>e.remove());

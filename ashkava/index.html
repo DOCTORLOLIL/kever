@@ -73,10 +73,10 @@ function render(sec){
   const who=`<span class="nm">${esc(n)} ${gender==='M'?'בֶּן':'בַּת'} ${esc(p)}</span>`;
   const lines=sec[gender+len];
   $('out').innerHTML=`<div class="card"><h2>${TITLES[gender+len]}</h2>`+lines.map(l=>{
-    if(!/[֑-ׇ]/.test(l))return `<p class="n">${esc(l)}</p>`;        // הוראה ללא ניקוד
+    if(!/[֑-ׇ]/.test(l))return `<p class="n">${esc(l.replace('מכאן לשאר התים','מכאן ואילך – לכל נפטר'))}</p>`;        // הוראה ללא ניקוד
     let h=esc(l).replace(/^[\s\u00a0\u200e\u200f]*[א-ת]{1,2}[\s\u00a0\u2009\u200f]+(?=[\u05d0-\u05ea])/,'');                              // מספר פסוק בתחילת השורה
     h=h.replace('שם בֶּן שם האב',who).replace('שם בֶּן שם האם',who).replace('שם בַּת שם האם',who).replace('מָרַת (פלונית)','מָרַת '+who);
-    h=h.replace(/\((אמן|עליו)\)/g,'<span class="amen">($1)</span>');
+    h=h.replace(/\(([^()\u05B0-\u05C7]*)\)/g,'<span class="amen">($1)</span>');   // מקורות והערות בסוגריים – קטן
     return `<p class="t">${h}</p>`}).join('')+'</div>';
 }
 async function go(){
@@ -95,7 +95,7 @@ const sp=new URLSearchParams(location.search);
 $('name').value=sp.get('n')||''; $('parent').value=sp.get('p')||'';
 if(sp.get('g')==='F')$('gF').click(); else go();
 </script>
-<script src="/translit.js?v=3"></script>
+<script src="/translit.js?v=4"></script>
 <script>GMTranslit.attach({bar:'.size',items:'#out .t',root:'#out'})</script>
 </body>
 </html>
