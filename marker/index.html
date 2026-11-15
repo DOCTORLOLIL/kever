@@ -183,6 +183,8 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
 
 <div class="dlg" id="dPh"><div class="box" style="max-width:480px;max-height:85vh;overflow:auto">
   <h3>תמונות לאישור</h3><div id="phList" style="display:flex;flex-direction:column;gap:12px"></div>
+  <button id="phClean" style="width:100%;margin-top:10px">🧹 הסרת מיקום מתמונות שכבר אושרו</button>
+  <div id="phCleanMsg" style="font-size:13px;color:var(--mute);margin-top:4px"></div>
   <button id="phClose" style="width:100%;margin-top:10px">סגירה</button>
 </div></div>
 
@@ -556,7 +558,22 @@ async function phOpen(){
     return `<div data-id="${p.id}" data-path="${p.path}"><img src="${u}" style="width:100%;border-radius:10px"><div style="margin:4px 0">${d.first_name||''} ${d.last_name||''} · חלקה ${d.plot||'?'} שורה ${d.row_no||'?'} קבר ${d.grave_no||'?'}</div>
     <div class="row"><button class="ok" data-a="approved">אישור</button><button class="bad" data-a="rejected">דחייה</button></div></div>`}).join('');
 }
+// הסרת נתוני המיקום (EXIF) מתמונה לפני שהיא מוצגת לכולם: ציור מחדש ושמירה כקובץ חדש
+async function cleanPhoto(id,path){
+  const url=sb.storage.from('grave-photos').getPublicUrl(path).data.publicUrl;
+  const blob=await (await fetch(url,{cache:'no-store'})).blob();
+  const bmp=await createImageBitmap(blob,{imageOrientation:'from-image'});
+  const sc=Math.min(1,2400/Math.max(bmp.width,bmp.height));
+  const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);
+  cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+  const clean=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.88));
+  const np=`pending/${path.split('/')[1]||'x'}/${crypto.randomUUID()}-c.jpg`;
+  const up=await sb.storage.from('grave-photos').upload(np,clean,{contentType:'image/jpeg'});if(up.error)throw up.error;
+  const {error}=await sb.from('grave_photos').update({path:np}).eq('id',id);
+  if(error){await sb.storage.from('grave-photos').remove([np]);throw error}
+  await sb.storage.from('grave-photos').remove([path]);return np}
 $('phList').onclick=async e=>{const b=e.target.closest('button[data-a]');if(!b)return;const it=b.closest('[data-id]');b.disabled=true;
+  if(b.dataset.a==='approved'){try{it.dataset.path=await cleanPhoto(+it.dataset.id,it.dataset.path)}catch(err){alertMsg(it,'הסרת המיקום מהתמונה נכשלה: '+(err.message||err)+'. התמונה לא אושרה.');b.disabled=false;return}}
   const {error}=await sb.from('grave_photos').update({status:b.dataset.a}).eq('id',+it.dataset.id);
   if(error){alertMsg(it,error.message);return}
   if(b.dataset.a==='rejected')await sb.storage.from('grave-photos').remove([it.dataset.path]);
@@ -566,6 +583,11 @@ $('phList').onclick=async e=>{const b=e.target.closest('button[data-a]');if(!b)r
   it.remove(); phCount(); if(!$('phList').children.length)$('phList').textContent='אין תמונות שממתינות לאישור.'};
 function alertMsg(el,t){el.insertAdjacentHTML('beforeend',`<div style="color:var(--bad)">${t}</div>`)}
 $('bPh').onclick=phOpen;
+$('phClean').onclick=async()=>{const {data,error}=await sb.from('grave_photos').select('id,path').eq('status','approved').not('path','like','%-c.jpg');
+  if(error){$('phCleanMsg').textContent=error.message;return}
+  if(!data.length){$('phCleanMsg').textContent='✓ כל התמונות המאושרות כבר בלי מיקום.';return}
+  let ok=0;for(const p of data){$('phCleanMsg').textContent=`מעבד ${ok+1} מתוך ${data.length}…`;try{await cleanPhoto(p.id,p.path);ok++}catch{}}
+  $('phCleanMsg').textContent=`✓ הוסר המיקום מ-${ok} תמונות${ok<data.length?` (${data.length-ok} נכשלו)`:''}.`};
 // דיווחים
 const KIND={error:'פרט שגוי',damage:'מצבה פגועה',other:'אחר'};
 async function repCount(){const {count}=await sb.from('reports').select('id',{count:'exact',head:true}).eq('status','new');$('repBadge').textContent=count||'';$('repBadge').hidden=!count}
