@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<script src="/shabbat.js"></script>
+<script src="/shabbat.js?v=3"></script>
 <link rel="icon" type="image/png" href="/icons/icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>תפילון – תהלים קי"ט</title>
@@ -86,7 +86,7 @@ $('zm').onclick=()=>{z=Math.max(0.7,z-0.1);document.documentElement.style.setPro
 const sp=new URLSearchParams(location.search);
 if(sp.get('n')){$('name').value=sp.get('n');$('parent').value=sp.get('p')||'';if(sp.get('t'))$('ptype').value=sp.get('t');if(sp.get('r'))$('rel').value=sp.get('r');$('ptype').onchange();render()}
 </script>
-<script src="/translit.js"></script>
+<script src="/translit.js?v=3"></script>
 <script>GMTranslit.attach({bar:'.size',items:'#out .v',root:'#out'})</script>
 </body>
 </html>

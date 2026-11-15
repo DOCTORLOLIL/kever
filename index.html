@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<script src="/shabbat.js"></script>
+<script src="/shabbat.js?v=3"></script>
 <link rel="icon" type="image/png" href="/icons/icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Grave Marker – איתור קברים</title>
@@ -570,7 +570,7 @@ $('offBtn').onclick=async()=>{
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 (async()=>{await loadCems();offStatus();route()})();
 </script>
-<script src="/translit.js"></script>
+<script src="/translit.js?v=3"></script>
 <script>GMTranslit.attach({bar:'#prTools',items:'#welcome .prayer',root:'#welcome .box'})</script>
 </body>
 </html>

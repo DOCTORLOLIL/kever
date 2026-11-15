@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<script src="/shabbat.js"></script>
+<script src="/shabbat.js?v=3"></script>
 <link rel="icon" type="image/png" href="/icons/icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>השכבה – Grave Marker</title>
@@ -95,7 +95,7 @@ const sp=new URLSearchParams(location.search);
 $('name').value=sp.get('n')||''; $('parent').value=sp.get('p')||'';
 if(sp.get('g')==='F')$('gF').click(); else go();
 </script>
-<script src="/translit.js"></script>
+<script src="/translit.js?v=3"></script>
 <script>GMTranslit.attach({bar:'.size',items:'#out .t',root:'#out'})</script>
 </body>
 </html>
