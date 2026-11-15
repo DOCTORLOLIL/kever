@@ -32,7 +32,9 @@ function check(){const s=state();
     box.innerHTML=`<div style="font-size:56px;margin-bottom:12px">🕯️🕯️</div><div style="font-size:26px;font-weight:700;line-height:1.4;max-width:520px">לכבוד הנפטרים, אנחנו שומרים ${s.chag?'את החג':'שבת'}.<br>נסו גם אתם.</div><div style="margin-top:18px;font-size:16px;opacity:.85">נחזור ב${s.chag?'מוצאי החג':'מוצאי שבת'}, בשעה ${hm}.</div><div style="margin-top:30px;font-size:14px;opacity:.7">${s.chag?'חג שמח':'שבת שלום'}</div>`;
     document.documentElement.appendChild(box);document.documentElement.style.overflow='hidden'}
   else if(!s&&box){box.remove();box=null;document.documentElement.style.overflow=''}}
+// לוח השנה העברי: אם הדף טוען אותו בעצמו – מחכים לו; אחרת טוענים פעם אחת
 function boot(){if(typeof HebCal!=='undefined')return check();const sc=document.createElement('script');sc.src='/hebcal.js';sc.onload=check;sc.onerror=check;document.head.appendChild(sc)}
-if(document.head)boot();else document.addEventListener('DOMContentLoaded',boot);
+check();   // שבת רגילה לא צריכה את לוח השנה
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 setInterval(check,60e3);
 })();

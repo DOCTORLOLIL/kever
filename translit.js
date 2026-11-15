@@ -55,21 +55,31 @@ function translit(text,scheme='lat'){const sc=S[scheme]||S.lat;
   return res.charAt(0).toUpperCase()+res.slice(1)}
 
 // ---------- השמעה ----------
-let speaking=false, audio=null;
+let speaking=false, audio=null, resumeAt=0;
+// קטעים ארוכים מחולקים לחלקים (עד ~450 תווים) בגבולות משפט
+function parts(t){t=t.replace(/\s+/g,' ').trim();if(t.length<=450)return [t];
+  const out=[];let cur='';for(const s of t.split(/(?<=[.:;,])\s+/)){if((cur+' '+s).trim().length>450&&cur){out.push(cur);cur=s}else cur=(cur+' '+s).trim()}
+  if(cur)out.push(cur);return out.flatMap(x=>x.length>450?x.match(/.{1,450}(\s|$)/g):[x])}
 // קול גברי בלבד: קובצי קול שנוצרים בשרת. אין שימוש בקולות המכשיר.
 async function clip(text){const r=await fetch(TTS,{method:'POST',headers:{'content-type':'application/json',apikey:TTS_KEY},body:JSON.stringify({text})});
   const j=await r.json();if(!r.ok||!j.url)throw new Error(j.error||'tts');return j.url}
-async function speak(els,btn){
-  if(speaking){speaking=false;audio?.pause();btn.textContent='🔊 השמעה';els.forEach(e=>e.classList.remove('reading'));return}
-  speaking=true;btn.textContent='⏹ עצירה';
-  let next=els.length?clip(els[0].dataset.say||els[0].innerText).catch(()=>null):null;
-  for(let i=0;i<els.length&&speaking;i++){const e=els[i];const url=await next;
-    next=i+1<els.length?clip(els[i+1].dataset.say||els[i+1].innerText).catch(()=>null):null;   // מכינים את הבא מראש
-    if(!url){if(i===0){alert('ההשמעה לא זמינה כרגע. נסו שוב מאוחר יותר.');break}continue}
+function label(btn){btn.textContent=speaking?'⏸ עצירה':resumeAt>0?'▶ המשך':'🔊 השמעה';const rs=document.getElementById('gmRestart');if(rs)rs.hidden=speaking||resumeAt===0}
+async function speak(els,btn,from){
+  if(speaking){speaking=false;audio?.pause();label(btn);return}      // עצירה – ממשיכים אחר כך מתחילת אותו פסוק
+  speaking=true;let i=from??resumeAt,played=false;if(i>=els.length)i=0;label(btn);
+  const say=e=>(e.dataset.say||e.innerText);
+  const prep=k=>k<els.length?Promise.all(parts(say(els[k])).map(p=>clip(p).catch(()=>null))):null;
+  let next=prep(i);
+  for(;i<els.length&&speaking;i++){const e=els[i];resumeAt=i;const urls=await next;next=prep(i+1);   // מכינים את הבא מראש
+    if(!speaking)break;
+    if(!urls||urls.every(u=>!u)){if(!played){alert('ההשמעה לא זמינה כרגע. נסו שוב מאוחר יותר.');speaking=false;break}continue}
+    played=true;
+    document.querySelectorAll('.reading').forEach(x=>x.classList.remove('reading'));
     e.classList.add('reading');e.scrollIntoView({behavior:'smooth',block:'center'});
-    await new Promise(res=>{audio=new Audio(url);audio.onended=audio.onerror=res;audio.play().catch(res)});
-    e.classList.remove('reading')}
-  speaking=false;btn.textContent='🔊 השמעה'}
+    for(const u of urls){if(!u||!speaking)continue;await new Promise(res=>{audio=new Audio(u);audio.onended=audio.onerror=res;audio.play().catch(res)})}
+    if(speaking)e.classList.remove('reading')}
+  if(speaking){resumeAt=0;speaking=false}   // הגענו לסוף
+  label(btn)}
 
 // ---------- חיבור לדף ----------
 // bar: איפה לשים את הכפתורים, items: הפסוקים/השורות
@@ -80,7 +90,7 @@ function attach({bar,items,root}){
   const box=document.createElement('span');box.className='gm-tools';
   const lang=(navigator.language||'').slice(0,2), def=lang==='ru'?'cyr':'lat';
   let mode=null;try{mode=localStorage.getItem('gmTr')}catch{} if(mode==='null')mode=null;
-  box.innerHTML=`${SPEAK?'<button type="button" id="gmSay">🔊 השמעה</button>':''}<button type="button" id="gmLat">Abc</button><button type="button" id="gmCyr">Абв</button>`;
+  box.innerHTML=`${SPEAK?'<button type="button" id="gmSay">🔊 השמעה</button><button type="button" id="gmRestart" hidden title="מההתחלה">⟲ מההתחלה</button>':''}<button type="button" id="gmLat">Abc</button><button type="button" id="gmCyr">Абв</button>`;
   host.prepend(box);
   const sel=()=>[...document.querySelectorAll(items)];
   let draw=()=>{document.querySelectorAll('.gm-tr').forEach(e=>e.remove());
@@ -88,10 +98,12 @@ function attach({bar,items,root}){
     if(!mode)return;for(const e of sel()){const d=document.createElement('div');d.className='gm-tr';d.textContent=translit(e.innerText,mode);e.after(d)}};
   const set=m=>{mode=mode===m?null:m;try{localStorage.setItem('gmTr',mode)}catch{}draw()};
   box.querySelector('#gmLat').onclick=()=>set('lat');box.querySelector('#gmCyr').onclick=()=>set('cyr');
-  if(SPEAK)box.querySelector('#gmSay').onclick=e=>speak(sel(),e.currentTarget);
+  if(SPEAK){const sb=box.querySelector('#gmSay');sb.onclick=()=>speak(sel(),sb);
+    box.querySelector('#gmRestart').onclick=()=>{resumeAt=0;speak(sel(),sb,0)}}
   // כשהטקסט נטען/מתחלף – מעדכנים את התעתיק
   const r=document.querySelector(root||'body');
-  const ob=new MutationObserver(()=>{ob.disconnect();draw();ob.observe(r,{childList:true})});
+  // התוכן התחלף (שם אחר, איש/אישה) – עוצרים ומתחילים מההתחלה
+  const ob=new MutationObserver(()=>{ob.disconnect();resumeAt=0;if(speaking){speaking=false;audio?.pause()}const sbtn=box.querySelector('#gmSay');if(sbtn)label(sbtn);draw();ob.observe(r,{childList:true})});
   const draw0=draw;draw=()=>{ob.disconnect();draw0();ob.observe(r,{childList:true})};
   ob.observe(r,{childList:true});
   if(mode===null&&lang!=='he'&&lang)mode=def;  // מי שהדפדפן שלו לא בעברית – מקבל תעתיק כברירת מחדל
