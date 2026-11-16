@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<script src="/shabbat.js?v=4"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<title>יארצייט קרוב – Grave Marker</title>
+<meta name="description" content="מי שהיארצייט שלו קרוב בבית העלמין">
+<meta name="theme-color" content="#1f5b57">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#f4f1ec;--card:#fffdf9;--ink:#23262b;--mute:#6d6a64;--line:#e2ddd4;--acc:#1f5b57;--gold:#E0A83A}
+@media (prefers-color-scheme:dark){:root{--bg:#15181b;--card:#1e2226;--ink:#ece9e3;--mute:#a19d95;--line:#30353a;--acc:#5fb3aa}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,Arial,sans-serif}
+header{background:#1f5b57;color:#fff;padding:14px 16px}
+header .row{max-width:600px;margin:0 auto;display:flex;gap:10px;align-items:center}
+header h1{font-size:20px;margin:0}header small{display:block;opacity:.85;font-size:13px}
+header a{color:#fff;text-decoration:none;font-size:22px}
+.wrap{max-width:600px;margin:0 auto;padding:10px 16px 40px}
+.chips{display:flex;gap:6px;margin:4px 0 6px}.chips button{font:inherit;font-size:14px;padding:6px 14px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.chips button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.day{margin:16px 2px 6px;font-weight:700;color:var(--acc);border-bottom:2px solid var(--gold);padding-bottom:3px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.day span{color:var(--mute);font-weight:400;font-size:13px}
+.it{display:flex;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:6px;color:inherit;text-decoration:none}
+.it b{display:block}.it small{color:var(--mute);font-size:13px}
+.yr{font-size:13px;color:var(--mute);text-align:left;white-space:nowrap}
+.empty{color:var(--mute);text-align:center;padding:24px}
+footer{text-align:center;color:var(--mute);font-size:13px;padding-top:16px}footer a{color:var(--mute)}
+</style>
+</head>
+<body>
+<header><div class="row"><a href="/" id="back" aria-label="חזרה">→</a><div><h1>🕯️ יארצייט קרוב</h1><small id="cemName"></small></div></div></header>
+<div class="wrap">
+  <div class="chips" id="chips"><button data-n="7" class="on">השבוע</button><button data-n="14">שבועיים</button><button data-n="30">חודש</button></div>
+  <div id="list"><p class="empty">טוען…</p></div>
+  <footer><a href="/">חיפוש קבר</a> · <a href="/download/">הורדת האפליקציה</a><div>נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
+</div>
+<script src="/hebcal.js?v=2"></script>
+<script>
+const $=id=>document.getElementById(id);
+const SB='https://vqydrrhgklikhfdsgrwr.supabase.co', KEY='sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C';
+const api=p=>fetch(`${SB}/rest/v1/${p}&apikey=${KEY}`).then(r=>r.ok?r.json():[]).catch(()=>[]);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sp=new URLSearchParams(location.search);
+let cemId=sp.get('c'); try{cemId=cemId||JSON.parse(localStorage.getItem('cem'))}catch{} cemId=cemId||'ofakim';
+const DOW=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const pd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const day0=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+let R=[], days=7;
+// אחרי צאת הכוכבים (כ-20 דקות אחרי השקיעה) – היום העברי של היום נגמר
+function afterTzeit(){try{return new Date()>new Date(+GMShabbat.sunset()+20*60e3)}catch{return new Date().getHours()>=18}}
+function draw(){
+  const today=day0(new Date()), late=afterTzeit(), start=late?addD(today,1):today, end=addD(start,days);
+  const by=new Map();
+  for(const r of R){const z=r.z;if(!z||z.date<start||z.date>=end)continue;const k=+z.date;if(!by.has(k))by.set(k,[]);by.get(k).push(r)}
+  const keys=[...by.keys()].sort((a,b)=>a-b);
+  if(!keys.length){$('list').innerHTML='<p class="empty">אין יארצייט בטווח הזה.</p>';return}
+  $('list').innerHTML=keys.map(k=>{const d=new Date(k),n=Math.round((d-today)/864e5),h=HebCal.toHeb(d);
+    const hd=HebCal.fmt(h).replace(/ \S+$/,'');
+    const lbl=n===0?'היום':n===1?'הערב ומחר':'יום '+DOW[d.getDay()];
+    const sub=`${n<=1?'יום '+DOW[d.getDay()]+' ':''}${d.getDate()}/${d.getMonth()+1}${n>1?' · מתחיל בערב שלפני':''}`;
+    const rows=by.get(k).sort((a,b)=>b.dd-a.dd).map(r=>{const par=[r.father_name,r.mother_name].filter(Boolean).join(' ו');
+      const loc=[r.plot&&'חלקה '+r.plot,r.row_no&&'שורה '+r.row_no].filter(Boolean).join(', ');
+      return `<a class="it" href="/?c=${encodeURIComponent(cemId)}&d=${r.id}"><div><b>${esc([r.last_name,r.first_name].filter(Boolean).join(' '))}</b><small>${[par&&'הורים: '+esc(par),esc(loc)].filter(Boolean).join(' · ')}</small></div><div class="yr">${esc(r.hy)}<br>שנה ${r.z.y-r.hyN}</div></a>`}).join('');
+    return `<div class="day">${lbl} · ${hd}<span>${sub}</span></div>${rows}`}).join('');
+}
+$('chips').onclick=e=>{const b=e.target.closest('button');if(!b)return;days=+b.dataset.n;$('chips').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));draw()};
+(async()=>{
+  const [c]=await api(`cemeteries?id=eq.${encodeURIComponent(cemId)}&select=id,name`);
+  if(!c){$('list').innerHTML='<p class="empty">לא מצאנו את בית העלמין.</p>';return}
+  $('cemName').textContent=c.name;$('back').href='/?c='+encodeURIComponent(c.id);
+  const all=[];for(let off=0;;off+=1000){const p=await api(`deceased?cemetery_id=eq.${encodeURIComponent(c.id)}&death_date=not.is.null&select=id,first_name,last_name,father_name,mother_name,plot,row_no,death_date&order=id&limit=1000&offset=${off}`);all.push(...p);if(p.length<1000)break}
+  const from=addD(day0(new Date()),-1);
+  for(const r of all){try{const dd=pd(r.death_date),h=HebCal.toHeb(dd);r.dd=+dd;r.hyN=h.y;r.hy=HebCal.fmt(h).split(' ').pop();r.z=HebCal.nextYahrzeits(dd,1,from)[0]}catch{}}
+  R=all;draw();
+  setInterval(draw,5*60e3);   // מתעדכן לבד בצאת הכוכבים
+})();
+</script>
+</body>
+</html>

@@ -23,7 +23,7 @@ function state(now=new Date()){const x=il(now);let start=null;
   // אם היום כבר באמצע רצף (למשל יום ב' של ראש השנה) – גם הימים הקודמים קובעים אם זה חג
   for(let b=add(start,-1);closed(b);b=add(b,-1))chag=chag||holiday(b);
   return {end:new Date(+ss(e)+AFTER*60e3),chag}}
-window.GMShabbat={state,shabbatEnd:n=>state(n)?.end||null};
+window.GMShabbat={state,shabbatEnd:n=>state(n)?.end||null,sunset:(n=new Date())=>ss(il(n))};
 let box=null;
 function check(){const s=state();
   if(s&&!box){box=document.createElement('div');box.id='gm-shabbat';
