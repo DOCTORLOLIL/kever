@@ -100,6 +100,7 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
     <button class="t" id="bImp" hidden><span class="ic">📥</span><b>ייבוא רשימת נפטרים</b><small>מקובץ Excel או CSV</small></button>
     <button class="t" id="bPlaces" hidden><span class="ic">🚰</span><b>נקודות שימושיות</b><small>ברזיות, שירותים, חניה ושעות פתיחה</small></button>
     <button class="t" id="bTz" hidden><span class="ic">🕯️</span><b>קברי צדיקים</b><small>בבית העלמין ובסביבה</small></button>
+    <button class="t" id="bAv" hidden><span class="ic">📘</span><b>הלכות אבלות</b><small>הכנסת סעיפים (מנהל)</small></button>
     <button class="t" id="bVac" hidden><span class="ic">🟩</span><b>קברים פנויים</b><small>לפי הרשימה, בכל חלקה</small></button>
     <button class="t" id="bCt" hidden><span class="ic">☎️</span><b>אנשי קשר</b></button>
     <button class="t" id="addEd" hidden><span class="ic">👤</span><b>מינוי עורך</b><small>למנהלים בלבד</small></button>
@@ -177,6 +178,18 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
   </div>
   <div id="tzMsg2" style="font-size:14px;min-height:18px;margin:6px 0"></div>
   <div class="row"><button class="ok" id="tzSave">💾 שמירה</button><button class="bad" id="tzDel" hidden>מחיקה</button><button id="tzClose">סגירה</button></div>
+</div></div>
+
+<div class="dlg" id="dAv"><div class="box" style="max-width:560px;max-height:92vh;overflow:auto">
+  <h3>📘 הלכות אבלות</h3>
+  <select id="avStage" style="width:100%;font-size:16px;padding:9px;margin-bottom:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
+    <option value="1">1. מהפטירה עד הקבורה</option><option value="2">2. הקבורה והלוויה</option><option value="3">3. שבעה</option><option value="4">4. שלושים</option><option value="5">5. שנה ראשונה</option><option value="6">6. יארצייט ואזכרה</option></select>
+  <div id="avList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+  <input id="avTitle" placeholder="כותרת הסעיף (למשל: קריעה)">
+  <textarea id="avBody" rows="8" placeholder="נוסח ההלכה, כפי שהרב אמר" style="width:100%;font:inherit;font-size:16px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);margin-top:6px"></textarea>
+  <div id="avMsg" style="font-size:14px;min-height:18px;margin:4px 0"></div>
+  <div class="row"><button class="pri" id="avSave">הוספת סעיף</button><button id="avCancel" hidden>ביטול עריכה</button><button id="avClose">סגירה</button></div>
+  <div style="font-size:12px;color:var(--mute);margin-top:6px">מופיע מיד באתר ובאפליקציה: gravemarker.bulu.ltd/avelut</div>
 </div></div>
 
 <div class="dlg" id="dHours"><div class="box">
@@ -564,7 +577,7 @@ async function login(){
 async function afterLogin(){
   const {data}=await sb.from('editors').select('*').eq('user_id',user.id).maybeSingle();
   if(!data){$('dLogin').classList.add('show');$('lMsg').textContent='המשתמש לא מורשה לעריכה (חסר בטבלת editors).';return}
-  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('ctWeb').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; $('bStat').hidden=false; $('bAdd').hidden=false; $('bPlaces').hidden=false; $('bTz').hidden=false; $('bVac').hidden=false; repCount(); revCount(); statLoad(); await loadCems();
+  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bAv').hidden=!data.is_admin; $('ctWeb').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; $('bStat').hidden=false; $('bAdd').hidden=false; $('bPlaces').hidden=false; $('bTz').hidden=false; $('bVac').hidden=false; repCount(); revCount(); statLoad(); await loadCems();
 }
 async function addEditor(){
   const name=$('eName').value.trim(), email=$('eEmail').value.trim().toLowerCase(), pass=$('ePass').value;
@@ -960,6 +973,33 @@ $('pHours').onclick=async()=>{const {data}=await sb.from('cemeteries').select('h
 $('hoursSave').onclick=async()=>{const {error}=await sb.from('cemeteries').update({hours:$('hoursIn').value.trim()||null}).eq('id',$('cem').value);
   $('hoursMsg').textContent=error?'השמירה נכשלה: '+error.message:'✓ נשמר';$('hoursMsg').style.color=error?'var(--bad)':'var(--ok)'};
 $('hoursClose').onclick=()=>$('dHours').classList.remove('show');
+
+// ---------- הלכות אבלות (מנהל) ----------
+let avRows=[], avEdit=null;
+function avForm(a){avEdit=a?a.id:null;$('avTitle').value=a?.title||'';$('avBody').value=a?.body||'';$('avSave').textContent=a?'💾 שמירת שינויים':'הוספת סעיף';$('avCancel').hidden=!a;$('avMsg').textContent='';
+  if(a)$('avTitle').scrollIntoView({behavior:'smooth',block:'center'})}
+async function avLoad(){const st=+$('avStage').value;
+  const {data,error}=await sb.from('avelut').select('*').eq('stage',st).order('sort').order('id');
+  if(error){$('avList').textContent='לא ניתן לטעון (האם הורץ avelut.sql?)';return}
+  avRows=data;
+  $('avList').innerHTML=data.length?data.map((a,i)=>`<div data-id="${a.id}" style="display:flex;justify-content:space-between;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px 8px">
+    <span style="min-width:0"><b>${i+1}. ${esc(a.title)}</b><br><small style="color:var(--mute)">${esc(a.body.slice(0,70))}${a.body.length>70?'…':''}</small></span>
+    <span style="display:flex;gap:4px;flex:0 0 auto"><button data-a="up" style="min-width:0;padding:6px 8px" ${i?'':'disabled'}>↑</button><button data-a="dn" style="min-width:0;padding:6px 8px" ${i<data.length-1?'':'disabled'}>↓</button><button data-a="ed" style="min-width:0;padding:6px 8px">✏️</button><button data-a="del" class="bad" style="min-width:0;padding:6px 8px">🗑</button></span></div>`).join(''):'<span style="color:var(--mute)">עוד אין סעיפים בשלב הזה.</span>'}
+$('avList').onclick=async ev=>{const b=ev.target.closest('button');if(!b)return;const id=+b.closest('[data-id]').dataset.id,i=avRows.findIndex(a=>a.id===id);
+  if(b.dataset.a==='ed'){avForm(avRows[i]);return}
+  if(b.dataset.a==='del'){if(!await ask(`למחוק את "${avRows[i].title}"?`,'הסעיף יימחק מהאתר ומהאפליקציה.'))return;await sb.from('avelut').delete().eq('id',id);if(avEdit===id)avForm(null);return avLoad()}
+  const j=b.dataset.a==='up'?i-1:i+1, l=[...avRows];[l[i],l[j]]=[l[j],l[i]];
+  await Promise.all(l.map((a,k)=>a.sort===k?null:sb.from('avelut').update({sort:k}).eq('id',a.id)));avLoad()};
+$('avSave').onclick=async()=>{const title=$('avTitle').value.trim(),body=$('avBody').value.trim();
+  if(!title||!body){$('avMsg').textContent='צריך כותרת ונוסח.';$('avMsg').style.color='var(--bad)';return}
+  const row={stage:+$('avStage').value,title,body,updated_at:new Date().toISOString()};
+  const {error}=avEdit?await sb.from('avelut').update(row).eq('id',avEdit):await sb.from('avelut').insert({...row,sort:avRows.length});
+  if(error){$('avMsg').textContent='השמירה נכשלה: '+error.message;$('avMsg').style.color='var(--bad)';return}
+  avForm(null);$('avMsg').textContent='✓ נשמר';$('avMsg').style.color='var(--ok)';avLoad()};
+$('avStage').onchange=()=>{avForm(null);avLoad()};
+$('avCancel').onclick=()=>avForm(null);
+$('bAv').onclick=()=>{avForm(null);$('dAv').classList.add('show');avLoad()};
+$('avClose').onclick=()=>$('dAv').classList.remove('show');
 
 // ---------- קברי צדיקים ----------
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<script src="/shabbat.js?v=4"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<title>הלכות אבלות – Grave Marker</title>
+<meta name="description" content="הלכות אבלות לפי שלבים: מהפטירה ועד היארצייט">
+<meta name="theme-color" content="#1f5b57">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&family=Frank+Ruhl+Libre:wght@400;700&display=swap">
+<style>
+:root{--bg:#f4f1ec;--card:#fffdf9;--ink:#23262b;--mute:#6d6a64;--line:#e2ddd4;--acc:#1f5b57;--gold:#E0A83A;--soft:#e1efe9}
+@media (prefers-color-scheme:dark){:root{--bg:#15181b;--card:#1e2226;--ink:#ece9e3;--mute:#a19d95;--line:#30353a;--acc:#5fb3aa;--soft:#1d2e2b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,Arial,sans-serif}
+header{background:#1f5b57;color:#fff;padding:14px 16px}
+header .row{max-width:640px;margin:0 auto;display:flex;gap:10px;align-items:center}
+header h1{font-size:20px;margin:0}header small{display:block;opacity:.85;font-size:13px}
+header a{color:#fff;text-decoration:none;font-size:22px}
+.wrap{max-width:640px;margin:0 auto;padding:12px 16px 40px}
+input.q{width:100%;font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin-bottom:8px}
+.st{display:flex;gap:12px;align-items:center;width:100%;text-align:right;font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-decoration:none}
+.st .n{width:32px;height:32px;border-radius:50%;background:var(--gold);color:#fff;display:grid;place-items:center;font-weight:700;flex:0 0 auto}
+.st b{display:block;font-size:16px}.st small{color:var(--mute);font-size:13px}
+.st .cnt{margin-right:auto;color:var(--mute);font-size:12px;white-space:nowrap}
+.st.ask{background:var(--soft);border-color:var(--acc)}.st.ask .n{background:var(--acc)}
+.st[disabled]{cursor:default;opacity:.75}
+.badge{background:var(--gold);color:#fff;border-radius:8px;padding:1px 7px;font-size:12px;margin-right:6px;font-weight:400}
+.size{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.size>button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:4px 12px;cursor:pointer}
+.sec{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;scroll-margin-top:10px}
+.sec h2{font-size:17px;margin:0 0 4px;color:var(--acc)}
+.t{font-family:"Frank Ruhl Libre",serif;font-size:calc(19px * var(--z,1));line-height:1.8;margin:4px 0;white-space:pre-line}
+.res{display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:6px;color:inherit;text-decoration:none}
+.res small{display:block;color:var(--mute);font-size:13px}
+mark{background:rgba(224,168,58,.4);color:inherit;border-radius:3px}
+.nav{display:flex;justify-content:space-between;gap:8px;margin:14px 0}
+.nav a{color:var(--acc);font-weight:700;text-decoration:none}
+.warn{background:rgba(224,168,58,.14);border:1px dashed var(--gold);padding:9px 12px;border-radius:10px;font-size:14px;margin:12px 0}
+.empty{color:var(--mute);text-align:center;padding:20px}
+.q1{background:var(--acc);color:#fff;border-radius:14px 14px 4px 14px;margin:10px 0 6px 40px;padding:9px 12px;white-space:pre-line}
+.a1{background:var(--card);border:1px solid var(--line);border-radius:14px 14px 14px 4px;margin:6px 40px 6px 0;padding:9px 12px;line-height:1.6;white-space:pre-line}
+.a1 a{display:block;margin-top:6px;font-size:13px;color:var(--acc)}
+.askbar{display:flex;gap:8px;margin-top:10px}.askbar textarea{flex:1;font:inherit;font-size:16px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);resize:none}
+.askbar button{font:inherit;font-weight:700;border:0;border-radius:12px;background:var(--acc);color:#fff;padding:0 16px;cursor:pointer}
+footer{text-align:center;color:var(--mute);font-size:13px;padding-top:16px}footer a{color:var(--mute)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="row"><a href="/" id="back" aria-label="חזרה">→</a><div><h1 id="h1">📘 הלכות אבלות</h1><small id="sub">מהפטירה ועד היארצייט</small></div></div></header>
+<div class="wrap">
+  <div id="vIndex">
+    <input class="q" id="q" type="search" placeholder="🔍 חיפוש: גילוח, נעליים, תפילין…" autocomplete="off">
+    <div id="res"></div>
+    <div id="stages"><p class="empty">טוען…</p></div>
+  </div>
+  <div id="vStage" hidden>
+    <div class="size"><button id="zm" aria-label="הקטנת טקסט">א-</button><button id="zp" aria-label="הגדלת טקסט">א+</button></div>
+    <div id="out"></div>
+    <div class="nav"><a id="prev" href="#"></a><a id="next" href="#"></a></div>
+  </div>
+  <div id="vAsk" hidden>
+    <div id="chat"></div>
+    <div class="askbar"><textarea id="askQ" rows="2" placeholder="כתבו שאלה…"></textarea><button id="askGo">שליחה</button></div>
+    <div class="warn">⚠ התשובה נלקחת רק מתוך ההלכות שבאתר, ואינה פסק הלכה. אם התשובה לא כתובה – נאמר זאת ולא ננחש. במקרה מיוחד – פנו לרב.</div>
+  </div>
+  <div class="warn" id="rabbi">מנהגים משתנים בין עדות וקהילות. לשאלה מעשית – פנו לרב.</div>
+  <footer><a href="/">חיפוש קבר</a> · <a href="/download/">הורדת האפליקציה</a><div>נבנה על ידי <a href="https://bulu.ltd" target="_blank" rel="noopener">BULU L.T.D</a></div></footer>
+</div>
+<script src="/translit.js?v=4"></script>
+<script>
+const $=id=>document.getElementById(id);
+const SB='https://vqydrrhgklikhfdsgrwr.supabase.co', KEY='sb_publishable_w6o5yCjbhBkuJ2FREujpHA_1V8ZcY0C';
+const ASK=false;   // שאלות ל-AI: יודלק אחרי טעינת קרדיט והעלאת הפונקציה ask-avelut
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const strip=s=>String(s??'').replace(/[֑-ׇ]/g,'');
+const STAGES=[[1,'מהפטירה עד הקבורה','אנינות, קריעה, שמירת המת'],[2,'הקבורה והלוויה','הספד, קדיש, סעודת הבראה'],[3,'שבעה','ישיבה על הארץ, מלאכה, ניחום אבלים'],
+  [4,'שלושים','תספורת, שמחות, בגדים'],[5,'שנה ראשונה','על אב ואם, קדיש'],[6,'יארצייט ואזכרה','מנהגי יום השנה']];
+let A=[];
+let z=1;try{z=+localStorage.getItem('avz')||1}catch{} document.documentElement.style.setProperty('--z',z);
+const setZ=v=>{z=Math.min(1.8,Math.max(.7,v));document.documentElement.style.setProperty('--z',z);try{localStorage.setItem('avz',z)}catch{}};
+$('zp').onclick=()=>setZ(z+.1);$('zm').onclick=()=>setZ(z-.1);
+
+function route(){
+  const sp=new URLSearchParams(location.search), s=+sp.get('s'), ask=sp.has('ask')&&ASK;
+  $('vIndex').hidden=!!(s||ask);$('vStage').hidden=!s;$('vAsk').hidden=!ask;$('rabbi').hidden=ask;
+  if(ask){$('h1').textContent='❓ שאלו שאלה';$('sub').textContent='תשובות מתוך הלכות אבלות בלבד';$('back').href='./';return}
+  if(!s){$('h1').textContent='📘 הלכות אבלות';$('sub').textContent='מהפטירה ועד היארצייט';$('back').href='/';index();return}
+  const st=STAGES.find(x=>x[0]===s)||STAGES[0];$('h1').textContent=st[1];$('sub').textContent=st[2];$('back').href='./';
+  const rows=A.filter(a=>a.stage===st[0]);
+  $('out').innerHTML=rows.length?rows.map(a=>`<div class="sec" id="a${a.id}"><h2>${esc(a.title)}</h2><p class="t">${esc(a.body)}</p></div>`).join(''):'<p class="empty">החלק הזה בהכנה. בקרוב יתווספו כאן ההלכות.</p>';
+  const p=STAGES.find(x=>x[0]===st[0]-1), n=STAGES.find(x=>x[0]===st[0]+1);
+  $('prev').textContent=p?'→ '+p[1]:'';$('prev').href=p?'?s='+p[0]:'#';$('next').textContent=n?n[1]+' ←':'';$('next').href=n?'?s='+n[0]:'#';
+  const h=location.hash&&document.querySelector(location.hash);if(h){h.scrollIntoView();h.querySelector('.t')?.classList.add('reading');setTimeout(()=>h.querySelector('.t')?.classList.remove('reading'),2500)}else scrollTo(0,0);
+}
+function index(){
+  $('stages').innerHTML=STAGES.map(([n,t,d])=>{const c=A.filter(a=>a.stage===n).length;
+    return `<a class="st" href="?s=${n}"><span class="n">${n}</span><span><b>${t}</b><small>${d}</small></span><span class="cnt">${c?c+' סעיפים':'בהכנה'}</span></a>`}).join('')
+   +`<${ASK?'a href="?ask"':'div disabled'} class="st ask"><span class="n">?</span><span><b>שאלו שאלה${ASK?'':'<span class="badge">בקרוב</span>'}</b><small>תשובה מתוך ההלכות, עם מקור</small></span></${ASK?'a':'div'}>`;
+}
+$('q').oninput=()=>{const q=strip($('q').value).trim();
+  if(q.length<2){$('res').innerHTML='';$('stages').hidden=false;return}
+  const re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g');
+  const hits=A.filter(a=>strip(a.title+' '+a.body).includes(q)).slice(0,30);
+  $('stages').hidden=true;
+  $('res').innerHTML=hits.length?hits.map(a=>{const b=strip(a.body),i=b.indexOf(q),snip=i<0?b.slice(0,90):(i>40?'…':'')+b.slice(Math.max(0,i-40),i+60)+'…';
+    return `<a class="res" href="?s=${a.stage}#a${a.id}"><b>${esc(strip(a.title)).replace(re,'<mark>$&</mark>')}</b><small>${STAGES[a.stage-1][1]} · ${esc(snip).replace(re,'<mark>$&</mark>')}</small></a>`}).join(''):'<p class="empty">לא נמצא. נסו מילה אחרת.</p>'};
+
+// שאלות ל-AI (מוקפא עד שיש קרדיט)
+$('askGo').onclick=async()=>{const q=$('askQ').value.trim();if(q.length<4)return;
+  $('chat').insertAdjacentHTML('beforeend',`<div class="q1">${esc(q)}</div><div class="a1" id="pending">חושב…</div>`);$('askQ').value='';$('askGo').disabled=true;
+  try{const r=await fetch(SB+'/functions/v1/ask-avelut',{method:'POST',headers:{'content-type':'application/json',apikey:KEY},body:JSON.stringify({question:q})});
+    const j=await r.json();if(!r.ok)throw new Error(j.error||'');
+    const src=(j.sources||[]).map(id=>A.find(a=>a.id===id)).filter(Boolean);
+    $('pending').innerHTML=esc(j.answer)+src.map(a=>`<a href="?s=${a.stage}#a${a.id}">📖 המקור: ${STAGES[a.stage-1][1]} – ${esc(a.title)}</a>`).join('');
+  }catch{$('pending').textContent='לא הצלחנו לענות כרגע. נסו שוב מאוחר יותר, או פנו לרב.'}
+  $('pending')?.removeAttribute('id');$('askGo').disabled=false};
+
+document.addEventListener('click',e=>{const a=e.target.closest('a[href^="?"]');if(!a)return;e.preventDefault();history.pushState(null,'',a.getAttribute('href'));route()});
+addEventListener('popstate',route);
+(async()=>{
+  try{const r=await fetch(`${SB}/rest/v1/avelut?select=id,stage,sort,title,body&order=stage,sort,id&apikey=${KEY}`);A=r.ok?await r.json():[]}catch{A=[]}
+  route();
+  GMTranslit.attach({bar:'.size',items:'#out .t',root:'#out'});
+})();
+</script>
+</body>
+</html>
