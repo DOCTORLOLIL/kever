@@ -229,7 +229,7 @@ button.small{flex:0;padding:7px 10px;font-size:14px;min-width:0}
   <div id="ctList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
   <select id="ctCat" style="width:100%;font-size:16px;padding:9px;margin-bottom:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
     <option value="office">בית העלמין</option><option value="council">מועצה ושירותי דת</option><option value="maker">מכיני ומתקני מצבות</option><option value="other">נוסף</option></select>
-  <input id="ctName" placeholder="שם"><input id="ctRole" placeholder="תפקיד (לא חובה)"><input id="ctPhone" placeholder="טלפון" dir="ltr"><input id="ctNotes" placeholder="הערה (לא חובה)">
+  <input id="ctName" placeholder="שם"><input id="ctRole" placeholder="תפקיד (לא חובה)"><input id="ctPhone" placeholder="טלפון" dir="ltr"><input id="ctNotes" placeholder="הערה (לא חובה)"><input id="ctWeb" placeholder="כתובת אתר (רק מנהל)" dir="ltr" hidden>
   <div class="row"><button class="pri" id="ctAdd">הוספה</button><button id="ctCancel" hidden>ביטול עריכה</button><button id="ctClose">סגירה</button></div>
 </div></div>
 
@@ -564,7 +564,7 @@ async function login(){
 async function afterLogin(){
   const {data}=await sb.from('editors').select('*').eq('user_id',user.id).maybeSingle();
   if(!data){$('dLogin').classList.add('show');$('lMsg').textContent='המשתמש לא מורשה לעריכה (חסר בטבלת editors).';return}
-  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; $('bStat').hidden=false; $('bAdd').hidden=false; $('bPlaces').hidden=false; $('bTz').hidden=false; $('bVac').hidden=false; repCount(); revCount(); statLoad(); await loadCems();
+  $('dLogin').classList.remove('show'); $('logout').hidden=false; $('whoami').textContent=data.name?`מחובר: ${data.name}`:''; $('addEd').hidden=!data.is_admin; $('ctWeb').hidden=!data.is_admin; $('bPh').hidden=false; phCount(); $('bRep').hidden=false; $('bCt').hidden=false; $('bRev').hidden=false; $('bImp').hidden=false; $('bStat').hidden=false; $('bAdd').hidden=false; $('bPlaces').hidden=false; $('bTz').hidden=false; $('bVac').hidden=false; repCount(); revCount(); statLoad(); await loadCems();
 }
 async function addEditor(){
   const name=$('eName').value.trim(), email=$('eEmail').value.trim().toLowerCase(), pass=$('ePass').value;
@@ -656,7 +656,7 @@ $('bRep').onclick=repOpen; $('repClose').onclick=()=>$('dRep').classList.remove(
 // אנשי קשר
 const CAT={office:'בית העלמין',council:'מועצה ושירותי דת',maker:'מכיני מצבות',other:'נוסף'};
 let ctRows=[], ctEdit=null;
-function ctForm(c){ctEdit=c?c.id:null;$('ctCat').value=c?.category||'office';$('ctName').value=c?.name||'';$('ctRole').value=c?.role||'';$('ctPhone').value=c?.phone||'';$('ctNotes').value=c?.notes||'';
+function ctForm(c){ctEdit=c?c.id:null;$('ctCat').value=c?.category||'office';$('ctName').value=c?.name||'';$('ctRole').value=c?.role||'';$('ctPhone').value=c?.phone||'';$('ctNotes').value=c?.notes||'';$('ctWeb').value=c?.website||'';
   $('ctAdd').textContent=c?'💾 שמירת שינויים':'הוספה';$('ctCancel').hidden=!c;
   document.querySelectorAll('#ctList [data-id]').forEach(x=>x.style.outline=c&&+x.dataset.id===c.id?'2px solid var(--pri)':'');
   if(c)$('ctName').scrollIntoView({behavior:'smooth',block:'center'})}
@@ -665,7 +665,7 @@ async function ctLoad(){const cid=$('cem').value;$('ctCem').textContent=cems.fin
   if(error){$('ctList').textContent='לא ניתן לטעון (האם הורץ contacts_reports.sql?)';return}
   ctRows=data;
   $('ctList').innerHTML=data.length?data.map(c=>`<div data-id="${c.id}" style="display:flex;justify-content:space-between;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px 8px">
-    <span><b>${esc(c.name)}</b> · ${CAT[c.category]||''}${c.role?' · '+esc(c.role):''}<br><span dir="ltr">${esc(c.phone||'')}</span>${c.notes?`<br><small style="color:var(--mute)">${esc(c.notes)}</small>`:''}</span>
+    <span><b>${esc(c.name)}</b> · ${CAT[c.category]||''}${c.role?' · '+esc(c.role):''}<br><span dir="ltr">${esc(c.phone||'')}</span>${c.notes?`<br><small style="color:var(--mute)">${esc(c.notes)}</small>`:''}${c.website?`<br><small dir="ltr">🌐 ${esc(c.website)}</small>`:''}</span>
     <span style="display:flex;gap:4px;flex:0 0 auto"><button data-a="ed" style="min-width:0;padding:6px 10px">✏️ עריכה</button><button data-a="del" class="bad" style="min-width:0;padding:6px 10px">מחיקה</button></span></div>`).join(''):'עוד אין אנשי קשר.'}
 $('ctList').onclick=async ev=>{const b=ev.target.closest('button');if(!b)return;const id=+b.closest('[data-id]').dataset.id;
   if(b.dataset.a==='ed'){ctForm(ctRows.find(c=>c.id===id));return}
@@ -674,6 +674,7 @@ $('ctList').onclick=async ev=>{const b=ev.target.closest('button');if(!b)return;
 $('ctCancel').onclick=()=>ctForm(null);
 $('ctAdd').onclick=async()=>{const name=$('ctName').value.trim();if(!name)return;
   const row={category:$('ctCat').value,name,role:$('ctRole').value.trim()||null,phone:$('ctPhone').value.trim()||null,notes:$('ctNotes').value.trim()||null};
+  if(!$('ctWeb').hidden){let w=$('ctWeb').value.trim();if(w&&!/^https?:\/\//i.test(w))w='https://'+w;row.website=w||null}
   const {error}=ctEdit?await sb.from('cemetery_contacts').update(row).eq('id',ctEdit):await sb.from('cemetery_contacts').insert({cemetery_id:$('cem').value,...row});
   if(error){$('ctList').insertAdjacentHTML('afterbegin',`<div style="color:var(--bad)">${ctEdit?'השמירה':'ההוספה'} נכשלה</div>`);return} ctForm(null); ctLoad()};
 $('bCt').onclick=()=>{ctForm(null);$('dCt').classList.add('show');ctLoad()}; $('ctClose').onclick=()=>{ctForm(null);$('dCt').classList.remove('show')}; $('phClose').onclick=()=>$('dPh').classList.remove('show');
