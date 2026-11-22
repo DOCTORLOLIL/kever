@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /marker/
+Disallow: /plan/
+Disallow: /a/
+Disallow: /r/
+Disallow: /supabase/
+Sitemap: https://gravemarker.bulu.ltd/sitemap.xml
