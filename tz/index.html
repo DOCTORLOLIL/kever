@@ -61,7 +61,7 @@ const pd=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
 function nextH(t){if(!t.hillula||typeof HebCal==='undefined')return null;try{return HebCal.nextYahrzeits(pd(t.hillula),5)}catch{return null}}
 const daysTo=d=>Math.round((d-new Date(new Date().toDateString()))/864e5);
 const distTxt=m=>m<1000?Math.round(m/10)*10+" מ'":(m/1000).toFixed(m<10000?1:0)+' ק"מ';
-const locOf=t=>{const d=D[t.deceased_id];if(!d)return t.place||'';return [d.plot&&'חלקה '+d.plot,d.row_no&&'שורה '+d.row_no,d.grave_no&&'קבר '+d.grave_no].filter(Boolean).join(', ')};
+const locOf=t=>{const d=D[t.deceased_id];if(!d)return t.place||'';return [d.gush&&'גוש '+d.gush,d.plot&&'חלקה '+d.plot,d.row_no&&'שורה '+d.row_no,d.grave_no&&'קבר '+d.grave_no].filter(Boolean).join(', ')};
 
 function list(){
   const ds=t=>me?map.distance(me,[t.lat,t.lng]):0;
@@ -105,7 +105,7 @@ function fit(){if(T.length>1)map.fitBounds(L.latLngBounds(T.map(t=>[t.lat,t.lng]
   if(!c){$('list').innerHTML='<p class="empty">לא מצאנו את בית העלמין.</p>';return}
   cem=c;T=tz||[];$('cemName').textContent=c.name;
   const ids=T.map(t=>t.deceased_id).filter(Boolean);
-  if(ids.length)for(const d of await api(`deceased?id=in.(${ids.join(',')})&select=id,first_name,father_name,mother_name,plot,row_no,grave_no`))D[d.id]=d;
+  if(ids.length)for(const d of await api(`deceased?id=in.(${ids.join(',')})&select=id,first_name,father_name,mother_name,gush,plot,row_no,grave_no`))D[d.id]=d;
   map=L.map('map',{zoomControl:false}).setView([c.center_lat,c.center_lng],17);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:21,maxNativeZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
   for(const t of T)L.marker([t.lat,t.lng],{icon:L.divIcon({className:'',html:'<div class="pin">🕯️</div>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map)

@@ -63,7 +63,7 @@ function draw(){
     const lbl=n===0?'היום':n===1?'הערב ומחר':'יום '+DOW[d.getDay()];
     const sub=`${n<=1?'יום '+DOW[d.getDay()]+' ':''}${d.getDate()}/${d.getMonth()+1}${n>1?' · מתחיל בערב שלפני':''}`;
     const rows=by.get(k).sort((a,b)=>b.dd-a.dd).map(r=>{const par=[r.father_name,r.mother_name].filter(Boolean).join(' ו');
-      const loc=[r.plot&&'חלקה '+r.plot,r.row_no&&'שורה '+r.row_no].filter(Boolean).join(', ');
+      const loc=[r.gush&&'גוש '+r.gush,r.plot&&'חלקה '+r.plot,r.row_no&&'שורה '+r.row_no].filter(Boolean).join(', ');
       return `<a class="it" href="/?c=${encodeURIComponent(cemId)}&d=${r.id}"><div><b>${esc([r.last_name,r.first_name].filter(Boolean).join(' '))}</b><small>${[par&&'הורים: '+esc(par),esc(loc)].filter(Boolean).join(' · ')}</small></div><div class="yr">${esc(r.hy)}<br>שנה ${r.z.y-r.hyN}</div></a>`}).join('');
     return `<div class="day">${lbl} · ${hd}<span>${sub}</span></div>${rows}`}).join('');
 }
@@ -72,7 +72,7 @@ $('chips').onclick=e=>{const b=e.target.closest('button');if(!b)return;days=+b.d
   const [c]=await api(`cemeteries?id=eq.${encodeURIComponent(cemId)}&select=id,name`);
   if(!c){$('list').innerHTML='<p class="empty">לא מצאנו את בית העלמין.</p>';return}
   $('cemName').textContent=c.name;$('back').href='/?c='+encodeURIComponent(c.id);
-  const all=[];for(let off=0;;off+=1000){const p=await api(`deceased?cemetery_id=eq.${encodeURIComponent(c.id)}&death_date=not.is.null&select=id,first_name,last_name,father_name,mother_name,plot,row_no,death_date&order=id&limit=1000&offset=${off}`);all.push(...p);if(p.length<1000)break}
+  const all=[];for(let off=0;;off+=1000){const p=await api(`deceased?cemetery_id=eq.${encodeURIComponent(c.id)}&death_date=not.is.null&select=id,first_name,last_name,father_name,mother_name,gush,plot,row_no,death_date&order=id&limit=1000&offset=${off}`);all.push(...p);if(p.length<1000)break}
   const from=addD(day0(new Date()),-1);
   for(const r of all){try{const dd=pd(r.death_date),h=HebCal.toHeb(dd);r.dd=+dd;r.hyN=h.y;r.hy=HebCal.fmt(h).split(' ').pop();r.z=HebCal.nextYahrzeits(dd,1,from)[0]}catch{}}
   R=all;draw();

@@ -56,7 +56,7 @@ const dmy=d=>`${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()}`;
 const dayLine=d=>{const h=HebCal.toHeb(d);return `${DOW[d.getDay()]} ${dmy(d)} · ${HebCal.gem(h.day)} ${h.month}`};
 const iso=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
 const fullName=d=>[d.first_name,d.last_name].filter(Boolean).join(' ');
-const loc=d=>[d.plot&&'חלקה '+d.plot,d.row_no&&'שורה '+d.row_no,d.grave_no&&'קבר '+d.grave_no].filter(Boolean).join(' · ');
+const loc=d=>[d.gush&&'גוש '+d.gush,d.plot&&'חלקה '+d.plot,d.row_no&&'שורה '+d.row_no,d.grave_no&&'קבר '+d.grave_no].filter(Boolean).join(' · ');
 $('appBanner').hidden=!/Android/i.test(navigator.userAgent);
 
 const sp=new URLSearchParams(location.search);
@@ -64,7 +64,7 @@ let D=null, C=null;
 (async()=>{
   const id=+sp.get('d'), c=sp.get('c');
   if(!id||!c){$('main').innerHTML='<p class="err">הקישור חסר. פתחו את כרטיס הנפטר ולחצו "תיאום אזכרה".</p>';return}
-  [D]=await api(`deceased?id=eq.${id}&select=id,first_name,last_name,father_name,mother_name,plot,row_no,grave_no`);
+  [D]=await api(`deceased?id=eq.${id}&select=id,first_name,last_name,father_name,mother_name,gush,plot,row_no,grave_no`);
   [C]=await api(`cemeteries?id=eq.${encodeURIComponent(c)}&select=id,name,town,center_lat,center_lng`);
   if(!D||!C){$('main').innerHTML='<p class="err">לא מצאנו את הנפטר. ייתכן שהקישור שגוי.</p>';return}
   sp.get('t')?invite():form();

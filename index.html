@@ -70,7 +70,7 @@ footer a{color:var(--mute)}
 .sheet{background:var(--card);border-top:1px solid var(--line);border-radius:18px 18px 0 0;margin-top:-16px;position:relative;z-index:500;padding:14px 16px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -4px 18px #0002;max-height:60%;overflow:auto}
 .sheet h2{font-size:24px}
 .meta{color:var(--mute);font-size:15px;margin:2px 0 10px}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
 .grid div{background:var(--acc2);border-radius:12px;padding:8px;text-align:center}
 .grid small{display:block;color:var(--mute);font-size:12px}
 .grid b{font-size:20px;color:var(--acc)}
@@ -160,6 +160,7 @@ h3.grp{font-size:15px;color:var(--mute);margin:18px 2px 8px}
     <h2 id="dName"></h2>
     <div class="meta" id="dMeta"></div>
     <div class="grid">
+      <div><small>גוש</small><b id="dGush">—</b></div>
       <div><small>חלקה</small><b id="dPlot">—</b></div>
       <div><small>שורה</small><b id="dRow">—</b></div>
       <div><small>קבר</small><b id="dGrave">—</b></div>
@@ -241,7 +242,8 @@ const fmtDate=d=>d?d.split('-').reverse().join('/'):'';
 const fullName=r=>[r.first_name,r.last_name].filter(Boolean).join(' ');
 function sub(r){const p=[];if(r.father_name)p.push('שם האב: '+r.father_name);if(r.mother_name)p.push('שם האם: '+r.mother_name);
   const d=[r.death_date_hebrew,fmtDate(r.death_date)].filter(Boolean).join(' · ');return [p.join(' · '),d].filter(Boolean).join(' | ')}
-function locText(r){return r.plot?`חלקה ${r.plot}${r.row_no?' · שורה '+r.row_no:''}${r.grave_no?' · קבר '+r.grave_no:''}`:'מיקום לא ידוע'}
+const gp=r=>(r.gush?`גוש ${r.gush}, `:'')+`חלקה ${r.plot}`;
+function locText(r){return r.plot?`${gp(r)}${r.row_no?' · שורה '+r.row_no:''}${r.grave_no?' · קבר '+r.grave_no:''}`:'מיקום לא ידוע'}
 async function search(){
   const raw=$('q').value.trim(); if(!raw||!cem)return;
   const words=raw.split(/\s+/).map(w=>w.replace(/[^֐-׿a-zA-Z0-9'"\-]/g,'')).filter(w=>w.length>0).slice(0,4);
@@ -321,7 +323,7 @@ async function openDeceased(id,push){
   if(push)history.pushState({d:id},'',`?c=${encodeURIComponent(cem.id)}&d=${id}`);
   $('dName').textContent=fullName(data)+(data.alt_name?` (${data.alt_name})`:'');
   $('dMeta').textContent=sub(data);
-  $('dPlot').textContent=data.plot||'—'; $('dRow').textContent=data.row_no||'—'; $('dGrave').textContent=data.grave_no||'—';
+  $('dGush').textContent=data.gush||'—'; $('dPlot').textContent=data.plot||'—'; $('dRow').textContent=data.row_no||'—'; $('dGrave').textContent=data.grave_no||'—';
   document.title=`${fullName(data)} – איתור קברים`;
   show('detail'); map.invalidateSize(); drawMap(data); $('askLoc').classList.add('hide'); $('photos').innerHTML='';
   showYahrzeit(data); await loadEstimate(data); await loadGrave(id); loadPhotos(id); startGps(); updateNav();
@@ -346,7 +348,7 @@ function updateNav(){
   if(lastPos){if(!meMk)meMk=L.marker(lastPos,{icon:L.divIcon({className:'me',iconSize:[18,18]}),zIndexOffset:1000}).addTo(map);else meMk.setLatLng(lastPos)}
   const pt=gravePt||estPt||(target&&[target.lat,target.lng]);
   if(!pt){$('arrow').style.visibility='hidden';
-    $('navText').textContent=!cur?.plot?'המיקום של הקבר לא רשום אצלנו.':`חלקה ${cur.plot} עוד לא סומנה על המפה. היעזרו בשילוט בבית העלמין.`;return}
+    $('navText').textContent=!cur?.plot?'המיקום של הקבר לא רשום אצלנו.':`${gp(cur)} עוד לא סומנה על המפה. היעזרו בשילוט בבית העלמין.`;return}
   if(!lastPos){$('arrow').style.visibility='hidden';return}
   const d=map.distance(lastPos,pt), br=bearing(lastPos,pt);
   if(routeLine)routeLine.setLatLngs([lastPos,pt]);else routeLine=L.polyline([lastPos,pt],{color:'#1f8fff',weight:3,dashArray:'6 8'}).addTo(map);
@@ -355,10 +357,10 @@ function updateNav(){
   let arrived=null;
   if(gravePt&&d<=5)arrived=`הגעתם. הקבר כאן, ברדיוס של כמה מטרים.${rowTxt?' ('+rowTxt.trim()+')':''}`;
   else if(!gravePt&&estPt&&d<=8)arrived=`הקבר אמור להיות קרוב, כמה מטרים מכם. חפשו${rowTxt}.`;
-  else if(!gravePt&&!estPt&&targetPoly&&inPoly(lastPos,targetPoly))arrived=`הגעתם לחלקה ${cur.plot}. חפשו${rowTxt}.`;
+  else if(!gravePt&&!estPt&&targetPoly&&inPoly(lastPos,targetPoly))arrived=`הגעתם ל${gp(cur)}. חפשו${rowTxt}.`;
   if(arrived){$('arrow').textContent='✓';$('arrow').style.transform='none';$('navText').textContent=arrived;maybeAskLoc();return}
   $('arrow').textContent='↑'; $('arrow').style.transform=`rotate(${heading!=null?br-heading:br}deg)`;
-  const dest=gravePt?'הקבר':estPt?'הקבר (מיקום משוער)':`חלקה ${cur.plot}`;
+  const dest=gravePt?'הקבר':estPt?'הקבר (מיקום משוער)':gp(cur);
   $('navText').textContent=d>2000?`אתם במרחק ${(d/1000).toFixed(1)} ק"מ מבית העלמין.`:`${Math.round(d)} מטר ${dirs[Math.round(br/45)%8]} עד ${dest}`+(heading==null?' (החץ מכוון לצפון)':'');
 }
 
