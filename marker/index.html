@@ -849,14 +849,16 @@ $('impCheck').onclick=async()=>{
   rows.forEach(r=>{const k=key(r);if(k&&cnt[k]>1)r._i.push('עוד נפטר רשום באותו קבר');r.notes=r._i.length?r._i.join(', '):null});
   // מצב עדכון: מדלגים על נפטרים שכבר קיימים בבית העלמין
   const nk=v=>String(v??'').replace(/\s+/g,' ').trim();
+  // מספר שורה בקובץ לבד לא מזהה נפטר (קובץ ממוין מחדש = מספרים אחרים), לכן תמיד יחד עם השם
+  const kSrc=r=>[r.source_id,nk(r.last_name),nk(r.first_name)].join('|');
   const kName=r=>[nk(r.last_name),nk(r.first_name),r.death_date||''].join('|'), kPlace=r=>[nk(r.last_name),nk(r.first_name),r.plot||'',r.row_no||'',r.grave_no||''].join('|');
   let exist=0, dup=0; const have=new Set();
   if(!DEMO){$('impCheck').disabled=true;$('impCheck').textContent='בודק מול הרשומות הקיימות…';
     for(let f=0;;f+=1000){const {data}=await sb.from('deceased').select('source_id,last_name,first_name,death_date,plot,row_no,grave_no').eq('cemetery_id',cem).order('id').range(f,f+999);
-      for(const x of data||[]){exist++;have.add('S'+x.source_id);have.add('N'+kName(x));have.add('P'+kPlace(x))}
+      for(const x of data||[]){exist++;have.add('S'+kSrc(x));have.add('N'+kName(x));have.add('P'+kPlace(x))}
       if(!data||data.length<1000)break}
     $('impCheck').disabled=false;$('impCheck').textContent='בדיקה ותצוגה מקדימה'}
-  if(exist){const keep=rows.filter(r=>{const d=(m.source_id!=null&&have.has('S'+r.source_id))||(r.death_date&&have.has('N'+kName(r)))||(r.plot&&r.row_no&&r.grave_no&&have.has('P'+kPlace(r)));if(d)dup++;return!d});
+  if(exist){const keep=rows.filter(r=>{const d=(m.source_id!=null&&have.has('S'+kSrc(r)))||(r.death_date&&have.has('N'+kName(r)))||(r.plot&&r.row_no&&r.grave_no&&have.has('P'+kPlace(r)));if(d)dup++;return!d});
     rows.length=0;rows.push(...keep)}
   imp.rows=rows;
   const by={}; rows.forEach(r=>r._i.forEach(x=>{const k=x.replace(/ \(.*/,'');by[k]=(by[k]||0)+1}));
