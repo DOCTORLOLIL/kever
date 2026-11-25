@@ -736,6 +736,7 @@ async function revLoad(){
 $('revList').onclick=async ev=>{
   const b=ev.target.closest('button[data-a]'); if(!b)return; const it=b.closest('.rv'), m=it.querySelector('.m');
   const row={}; it.querySelectorAll('input[data-f]').forEach(i=>{const v=i.value.trim().replace(/\s+/g,' ');row[i.dataset.f]=v||null});
+  if('last_name' in row&&row.last_name==null)row.last_name='';   // אין שם משפחה – נשמר ריק (המאגר לא מקבל null)
   row.death_date_none=it.querySelector('[data-none]').checked&&!row.death_date;
   row.death_date_hebrew=hebOf(row.death_date);
   // תאריך הוזן או סומן "ללא" – ההערה "חסר תאריך פטירה" יורדת
@@ -831,6 +832,7 @@ $('impCheck').onclick=async()=>{
       father_name:cleanName(g('father_name')),mother_name:cleanName(g('mother_name')),gush:cleanNum(g('gush'))||'1',
       plot:cleanNum(g('plot')),row_no:cleanNum(g('row_no')),grave_no:cleanNum(g('grave_no')),source_id:(x=>/^\d+$/.test(x||'')?+x:i+1)(cleanNum(g('source_id')))};
     if(!r.last_name&&!r.first_name){empty++;continue}
+    r.last_name=r.last_name??'';   // בלי שם משפחה – נשמר ריק, אחרת כל המנה נכשלת
     const issues=[];
     if(!r.first_name)issues.push('חסר שם פרטי');
     if(!r.plot||!r.row_no||!r.grave_no)issues.push('חסר מיקום (חלקה/שורה/קבר)');
@@ -932,6 +934,7 @@ $('aSave').onclick=async()=>{
   const row={cemetery_id:$('cem').value,last_name:v('aLast'),first_name:v('aFirst'),father_name:v('aFather'),mother_name:v('aMother'),
     gush:v('aGush')||'1',plot:v('aPlot'),row_no:v('aRow'),grave_no:v('aGrave'),death_date:v('aDate')};   // source_id נשאר ריק – נפטר שנוסף ידנית
   row.death_date_hebrew=hebOf(row.death_date); row.death_date_none=!row.death_date&&$('aNone').checked;
+  if(row.last_name==null&&row.first_name)row.last_name='';
   if(!row.last_name&&!row.first_name){$('aMsg').textContent='צריך לפחות שם משפחה או שם פרטי.';$('aMsg').style.color='var(--bad)';return}
   const miss=[];if(!row.first_name)miss.push('חסר שם פרטי');if(!row.death_date&&!row.death_date_none)miss.push('חסר תאריך פטירה');if(!row.plot||!row.row_no||!row.grave_no)miss.push('חסר מיקום (חלקה/שורה/קבר)');
   row.notes=miss.length?miss.join(', '):null;
